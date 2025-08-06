@@ -1,0 +1,8 @@
+[workspace]
+resolver = "3"
+members = ["bin_test", "quickfig_core", "quickfig_derive"]
+
+[workspace.dependencies]
+anyhow = "1.0.98"
+syn = { version = "2.0.104", features = ["extra-traits"] }
+proc-macro2 = "1.0.95"

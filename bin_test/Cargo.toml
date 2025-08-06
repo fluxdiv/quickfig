@@ -1,0 +1,9 @@
+[package]
+name = "bin_test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+quickfig_core = { path = "../quickfig_core" }
+quickfig_derive = { path = "../quickfig_derive" }
+anyhow = { workspace = true }
