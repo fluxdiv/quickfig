@@ -29,7 +29,7 @@ enum MyConfigFields {
     //
     // #[keys("Age", "age")]
     // #[any_of(String, u32)]
-    #[any_of(String, u32)]
+    #[any_of(String, u32, Vec<String>)]
     Age
 }
 
