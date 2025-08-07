@@ -1,13 +1,8 @@
-use std::{char, marker::PhantomData};
 use std::path::PathBuf;
-use std::convert::From;
-use config_types::{DeserializedConfig, JSON};
+use config_types::DeserializedConfig;
 use serde::de::DeserializeOwned;
 use anyhow::{Result, anyhow};
-use serde_json::Value as JsonValue;
-use toml::Value as TomlValue;
-use syn::{GenericArgument, Type, TypePath, PathArguments};
-use crate::allowed_type::{AllowedType, AllowedTypeWrapper, GetInner};
+use crate::allowed_type::{AllowedType, AllowedTypeWrapper};
 
 /// Wrapper around deserialized config file
 pub struct Config<S>(S)
@@ -30,25 +25,6 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
         let inner = &self.0;
         inner.parse_allowed_type(key, at)
     }
-
-    // pub fn get_field(&self, variant_stringified: String) -> String {
-    //     // String::from("hello : {variant_stringified}")
-    //     // variant_stringified
-    //     let inner = &self.0;
-    //     let f = inner.get_at_str(&variant_stringified);
-    //
-    //     match f {
-    //         Some(v) => {
-    //             let s = v.as_str();
-    //             if let Some(ss) = s {
-    //                 return String::from(ss);
-    //             } else {
-    //                 return String::from("was not string");
-    //             }
-    //         }
-    //         None => String::from("Field does not exist")
-    //     }
-    // }
 
     fn new_from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
 
@@ -113,16 +89,6 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
             Config::<S>::new_from_file(path)
         }).ok_or_else(|| anyhow!("No path matched search function"))?
     }
-
-    // fn default() -> Config<S> {
-    //     // Config((S::default(), PhantomData))
-    //     Config(S::default())
-    // }
-    //
-    // fn new(file_data: S) -> Self {
-    //     // Config((file_data, PhantomData))
-    //     Config(file_data)
-    // }
 }
 
 
@@ -159,8 +125,8 @@ pub mod config_types {
             key: &str,
             at: AllowedType
         ) -> Option<AllowedTypeWrapper> {
-            // So I'm getting the key (enum variant) & type from user when they use
-            // COnfig.get in their code
+            // this is called with a key (defined on user's enum variant via `keys()` or variant name itself)
+            // and allowed type (defined on user's enum variant via `must_be()` or `any_of()`
             let v = self.get(key)?;
 
             match at {
@@ -240,22 +206,22 @@ pub mod config_types {
                 AllowedType::Bool => {
                     v.as_bool().map(|b| AllowedTypeWrapper::Bool(b))
                 },
-                AllowedType::Vec(ref inner_at) => {
-                    let arr = v.as_array()?;
-                    let mut parsed = vec![];
-                    for val in arr {
-                        let inner_wrapper = self.parse_allowed_type(key, at.clone())?;
-                        parsed.push(inner_wrapper);
-                    }
-                    // wrap recursively
-                    parsed.into_iter()
-                        .rev()
-                        .reduce(|acc, x| {
-                            AllowedTypeWrapper::Vec(Box::new(x))
-                        })
-                        .map(|y| Box::new(y))
-                        .map(|z| AllowedTypeWrapper::Vec(z))
-                }
+                // AllowedType::Vec(ref inner_at) => {
+                //     let arr = v.as_array()?;
+                //     let mut parsed = vec![];
+                //     for val in arr {
+                //         let inner_wrapper = self.parse_allowed_type(key, at.clone())?;
+                //         parsed.push(inner_wrapper);
+                //     }
+                //     // wrap recursively
+                //     parsed.into_iter()
+                //         .rev()
+                //         .reduce(|acc, x| {
+                //             AllowedTypeWrapper::Vec(Box::new(x))
+                //         })
+                //         .map(|y| Box::new(y))
+                //         .map(|z| AllowedTypeWrapper::Vec(z))
+                // }
                 _ => unreachable!()
             }
             // None
@@ -276,6 +242,7 @@ pub mod config_types {
             self.get(key).is_some()
         }
         fn parse_allowed_type(&self, key: &str, at: AllowedType) -> Option<AllowedTypeWrapper> {
+            let _ = (key, at);
             // TODO
             None
         }

@@ -1,13 +1,12 @@
 // extern crate proc_macro;
 #![allow(unused, dead_code)]
-use proc_macro::{TokenStream};
+use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{
-    meta::ParseNestedMeta, parse_macro_input, Attribute, Data, DeriveInput, Ident, Lit, Meta, Type
+    meta::ParseNestedMeta, parse_macro_input, Attribute, Data, DeriveInput, Ident, Lit, Meta, Type, LitStr, punctuated::Punctuated, Token
 };
 use anyhow::Result;
-
 use quickfig_core::{
     AllowedType,
     AllowedTypeWrapper,
@@ -18,23 +17,11 @@ use quickfig_core::{
 // quickfig_derive
 // https://doc.rust-lang.org/book/ch20-05-macros.html
 
-// hello_macro_derive will be called when a user does `#[derive(ConfigFields)]` on a type
-// `ConfigFields` in `proc_macro_derive(ConfigFields)` just specifies the name, I can change that,
-// but it needs to match the trait name in the other lib
-//
-// note that the output for our derive macro is also a TokenStream. The returned TokenStream is added to the code that our crate users write, so when they compile their crate, they’ll get the extra functionality that we provide in the modified TokenStream.
-// ==
-// Note that the output is a TokenStream. The returned TokenStream is added to the code
-// that crate users write. Basically an updated version of the Rust code they used the
-// macro #[derive(ConfigFields)] on
-#[proc_macro_derive(ConfigFields, attributes(must_be, any_of))]
-pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ConfigFields, attributes(must_be, any_of, keys))]
+pub fn config_field_macro(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
-
-    // Build the trait implementation.
-    impl_hello_macro(&ast)
+    impl_config_field_macro(&ast)
 }
-
 
 fn meta_to_allowedtype(meta: ParseNestedMeta<'_>) -> Result<AllowedType, syn::Error> {
     if let Some(ident) = meta.path.get_ident() {
@@ -44,8 +31,8 @@ fn meta_to_allowedtype(meta: ParseNestedMeta<'_>) -> Result<AllowedType, syn::Er
                 return Err(meta.error("Failure parsing ident"));
             }
         };
+        // println!("ty: {:#?}", ty);
         if let syn::Type::Path(type_path) = ty {
-            let at = AllowedType::from_type_path(&type_path);
             if let Some(at) = AllowedType::from_type_path(&type_path) {
                 return Ok(at);
             } else {
@@ -59,45 +46,41 @@ fn meta_to_allowedtype(meta: ParseNestedMeta<'_>) -> Result<AllowedType, syn::Er
     }
 }
 
+struct VariantDefinition {
+    ident: Ident,
+    allowed_types: Vec<AllowedType>,
+    keys: Vec<String>
+}
 
-fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
+impl VariantDefinition {
+    fn new(ident: Ident) -> Self {
+        Self {ident, allowed_types: vec![], keys: vec![]}
+    }
+    fn add_type(&mut self, ty: AllowedType) {
+        self.allowed_types.push(ty);
+    }
+    fn add_key(&mut self, key: String) {
+        self.keys.push(key);
+    }
+}
+
+fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
     // This is the type that `ConfigFields` macro is derived on aka users enum
     let name = &ast.ident;
-    // let x: &Data = &ast.data;
-
-    let mut return_types_list: Vec<AllowedType> = vec![];
-
-    // Version 1) The API should be like 
-    // // For #[must_be(A)]
-    // Config.get(ConfigFields::Name) -> AllowedTypeWrapper
-    // // For #[any_of(A, B, C)]
-    // Config.get(ConfigFields::Age) -> Vec<AllowedTypeWrapper>
-    // Then user can call `AllowedTypeWrapper.get_string()` which returns
-    // Option<String>, based on if I was able to extract the String or not
-    // Version 2)
-    // Return for both gets monomorphisized into Vec<AllowedTypeWrapper>
-
-    // will be like [ (Name, [String, u32])   ,   (Age, [u32]) ]
-    // let mut var_attr_pairs: Vec<(Ident, Vec<String>)> = vec![];
-    let mut vars: Vec<Ident> = vec![];
-    let mut allowedtypes_lists: Vec<Vec<AllowedType>> = vec![];
+    let mut variant_defs: Vec<VariantDefinition> = vec![];
 
     match &ast.data {
         Data::Enum(data_enum) => {
             // enum variants on the user's Enum
             for variant in data_enum.variants.iter() {
-                println!("-------------------------------------");
-                let variant_name = &variant.ident;
-                println!("- START VARIANT: {} -", variant_name);
-
-                vars.push(variant_name.clone());
-                let mut this_vars_allowedtypes: Vec<AllowedType> = vec![];
+                // println!("-------------------------------------");
+                // let variant_name = &variant.ident;
+                // println!("- START VARIANT: {} -", variant_name);
+                let mut this_variant = VariantDefinition::new(variant.ident.clone());
 
                 for attr in &variant.attrs {
-
-                    println!("--- START ATTR ---");
-                    let attr_name = attr.path();
-
+                    // println!("--- START ATTR: {:#?} ---", "");
+                    // let attr_name = attr.path();
                     match attr.path().get_ident() {
                         Some(ident) if ident.eq("must_be") => {
                             let mut count = 0;
@@ -110,66 +93,66 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
                                 } else {count += 1;}
 
                                 let allowed: AllowedType = meta_to_allowedtype(meta)?;
-                                this_vars_allowedtypes.push(allowed);
+                                this_variant.add_type(allowed);
                                 // let astr = format!("{:#?}", allowed);
                                 Ok(())
-                            });
+                            }).unwrap();
                         },
                         Some(ident) if ident.eq("any_of") => {
-                            let pres = attr.parse_nested_meta(|meta| {
+                            attr.parse_nested_meta(|meta| {
                                 let allowed: AllowedType = meta_to_allowedtype(meta)?;
-                                this_vars_allowedtypes.push(allowed);
+                                this_variant.add_type(allowed);
                                 // let astr = format!("{:#?}", allowed);
                                 Ok(())
-                            });
+                            }).unwrap();
+                        },
+                        Some(ident) if ident.eq("keys") => {
+                            let keys: Punctuated<LitStr, Token![,]> = attr
+                                .parse_args_with(Punctuated::parse_terminated)
+                                .expect("Failed to parse keys attribute");
+
+                            for key in keys {
+                                this_variant.add_key(key.value());
+                                // println!("Got key: {}", key.value());
+                            }
                         },
                         _ => {
                             // Some(f) and None and _ don't cause LSP hints on panic
                             todo!()
-                            // panic!("All enum variants must be given an attribute that identifies the type they expect");
                         }
                     };
                 };
-                allowedtypes_lists.push(this_vars_allowedtypes);
+
+                variant_defs.push(this_variant);
             }
         },
         Data::Struct(_data_struct) => {
-            println!("is struct");
+            unimplemented!("ConfigFields can only be derived on Enums")
         },
         Data::Union(_data_union) => {
-            println!("is union");
+            unimplemented!("ConfigFields can only be derived on Enums")
         },
     };
 
-    println!("ast done");
-
     // Note to self: ALWAYS use full path for -EVERYTHING- in interpolated tokenstream
 
-    // HERE 08/05
-    // I have the way below to construct/iterate through each variant & its attributes
-    // Now, figure out how to use them to read from Config and return correct value
-
-    // Holds each match arm as token stream
     let mut match_arms: Vec<quote::__private::TokenStream> = Vec::new();
 
-    for (var, at_list) in vars.iter().zip(allowedtypes_lists.iter()) {
+    for variant in variant_defs.into_iter() {
+        let var_name = variant.ident;
+        let var_types = variant.allowed_types;
+        let var_keys = variant.keys;
 
-        // I also need to know if it's any_of or must_be, right? or is that handled
-        // so right now, if `must_be` gets more than 1 type it errors, and
-        // they return vec<ATW> either way, so I dont need that info here
-
-        let at_actions: Vec<quote::__private::TokenStream> = at_list.iter()
+        let at_actions: Vec<quote::__private::TokenStream> = var_types.iter()
             .map(|allowed_type| {
-                let at_str = format!("{:#?}", allowed_type);
                 let at_ident = Ident::new(
                     &format!("{:?}", allowed_type),
                     Span::call_site()
                 );
-
                 quote! {
                     // only push if some (if parsing was successful)
                     if let Some(at) = self.parse_allowed_type(
-                        stringify!(#var),
+                        stringify!(#var_name),
                         quickfig_core::AllowedType::#at_ident
                     ) {
                         at_wrappers.push(at);
@@ -178,27 +161,54 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
             })
             .collect();
 
-        // ---------------------------------------
-        // whole match arm -----------------------
+        let key_actions: Vec<quote::__private::TokenStream> = var_keys.iter()
+            .map(|key| {
+                let at_actions_for_key: Vec<quote::__private::TokenStream> = var_types
+                    .iter()
+                    .map(|allowed_type| {
+                        let at_ident = Ident::new(
+                            &format!("{:?}", allowed_type),
+                            Span::call_site()
+                        );
+                        quote! {
+                            // only push if some (if parsing was successful)
+                            if let Some(at) = self.parse_allowed_type(
+                                stringify!(#key),
+                                quickfig_core::AllowedType::#at_ident
+                            ) {
+                                at_wrappers.push(at);
+                            }
+                        }
+                    })
+                    .collect();
+
+                quote! {
+                    if !self.has_key(stringify!(#key)) {
+                        println!("key not found: {}", stringify!(#key));
+                    } else {
+                        println!("key found: {}", stringify!(#key));
+                        #(#at_actions_for_key)*
+                    }
+                }
+            })
+            .collect();
 
 
-        let arm = quote! {
-            #name::#var => {
-                println!("variant is {}", stringify!(#var));
 
+        // I should definitely be able to unify this in a simpler way right
+        let key_branch = if var_keys.is_empty() {
+            // keys is empty, proceed as normal using variant name as key
+            quote! {
                 // Should error or differentiate between non-existent key
                 // and unable to parse key into given types
-
-                if !self.has_key(stringify!(#var)) {
+                if !self.has_key(stringify!(#var_name)) {
                     // Should this be an error?
-                    println!("key not found: {}", stringify!(#var));
+                    println!("key not found: {}", stringify!(#var_name));
                 } else {
                     // Config file has the key associated with this variant's name
-                    println!("key found: {}", stringify!(#var));
-
+                    println!("key found: {}", stringify!(#var_name));
                     // declare this here, then have each iter loop push to it
                     let mut at_wrappers: Vec<quickfig_core::ATW> = vec![];
-
                     // for each allowed type in list, try to parse &Value
                     // self.parse_allowed_type(at: AllowedType) -> Option<ATWrapper>
                     // in each iteration I push to at_wrappers, but only if some
@@ -211,13 +221,33 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
                     } else {
                         return Some(at_wrappers);
                     }
+                }
+            }
+        } else {
+            // this variants keys wasn't empty, for key in keys do at_action using key instead of #var
+            quote!{
+                let mut at_wrappers: Vec<quickfig_core::ATW> = vec![];
 
+                #(#key_actions)*
+
+                if at_wrappers.is_empty() {
+                    return None;
+                } else {
+                    return Some(at_wrappers);
                 }
             }
         };
 
-        match_arms.push(arm);
+        let match_arm = quote! {
+            #name::#var_name => {
+                // println!("variant is {}", stringify!(#var_name));
+                #key_branch
+            }
+        };
+
+        match_arms.push(match_arm);
     }
+
 
     let impl_gen = quote! {
 
@@ -228,9 +258,6 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
 
-        // Move this to library and import it, then make .get public, and make
-        // the methods on Config itself private
-        // nvm orphan rules
         trait QuickFigReservedTraitName {
             type CF: quickfig_core::ConfigFields;
             fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig_core::ATW>>;
@@ -252,20 +279,18 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
 
-        // impl QuickFigReservedTraitName for quickfig_core::Config<quickfig_core::config_types::TOML> {
-        //     type CF = #name;
-        //
-        //     fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig_core::AT>> {
-        //
-        //         match their_enum {
-        //             #(#name::#var_idents => {
-        //                 println!("variant is {}", stringify!(#var_idents));
-        //             })*
-        //         }
-        //         // todo!()
-        //         return None;
-        //     }
-        // }
+        impl QuickFigReservedTraitName for quickfig_core::Config<quickfig_core::config_types::TOML> {
+            type CF = #name;
+
+            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig_core::ATW>> {
+                
+                match their_enum {
+                    #(#match_arms)*,
+                }
+
+                return None;
+            }
+        }
     };
 
     impl_gen.into()

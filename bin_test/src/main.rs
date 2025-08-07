@@ -1,10 +1,8 @@
 #![allow(dead_code, unused)]
-use std::marker::PhantomData;
-use std::path::PathBuf;
 use anyhow::Result;
 use quickfig_core::{
     config_types::{ JSON, TOML },
-    AllowedType,
+    // AllowedType,
     AllowedTypeWrapper,
     Config,
     ConfigFields,
@@ -14,23 +12,51 @@ use quickfig_derive::ConfigFields as ConfigFieldsMacro;
 
 #[derive(ConfigFieldsMacro)]
 enum MyConfigFields {
-    // config.get(Name) will return Option<Result<String>>,
-    // None      =>  if config doesn't have any of the keys in `keys()`
-    // Some(Err) =>  if there but not parseable as String
-    // Some(Ok(String)) =>  if there & parseable as String
-    //
     // // if keys() not provided, default is simply the case sensitive variant name
-    // #[keys("Name", "name", "nickname")]
+    // // if keys has overlap with another keys definition, it will be returned
+    // //    for both
+
+    // no keys + must_be
+    #[must_be(u32)]
+    A,
+    // keys overlaps with no keys default
+    #[keys("A")]
+    #[must_be(u32)]
+    A2,
+
+    // no keys + any_of
+    #[any_of(String, u32)]
+    B,
+    // keys overlaps with no keys default
+    #[keys("B")]
+    #[any_of(String, u32)]
+    B2,
+
+    // keys + must_be
+    #[keys("sirname", "nickname")]
     #[must_be(String)]
     Name,
-    // .get(Age) will return Option<(Result<String>, Result<u32>)>
-    // None        => keys not present
-    // Some(x, y)  => x&y are Ok(x) if parseable into type, Err if not
-    //
-    // #[keys("Age", "age")]
-    // #[any_of(String, u32)]
-    #[any_of(String, u32, Vec<String>)]
-    Age
+    // overlapping keys, same must_be type
+    #[keys("sirname", "foo")]
+    #[must_be(String)]
+    Name2,
+    // overlapping keys, different must_be type
+    #[keys("sirname", "foo")]
+    #[must_be(u32)]
+    Name3,
+
+    // keys + any_of
+    #[keys("young", "old")]
+    #[any_of(String, u32)]
+    Age,
+    // overlapping keys, same any_of type
+    #[keys("young", "old")]
+    #[any_of(String, u32)]
+    Age2,
+    // overlapping keys, different any_of type
+    #[keys("young", "old")]
+    #[any_of(u8, bool)]
+    Age3,
 }
 
 
