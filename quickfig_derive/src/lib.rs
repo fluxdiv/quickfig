@@ -248,6 +248,9 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
         match_arms.push(match_arm);
     }
 
+    // Generate unique ident so user can derive on multiple types
+    let trait_name = format!("QuickfigConfigTrait_{}", name);
+    let trait_ident = syn::Ident::new(&trait_name, name.span());
 
     let impl_gen = quote! {
 
@@ -258,12 +261,12 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
 
-        trait QuickFigReservedTraitName {
+        trait #trait_ident {
             type CF: quickfig_core::ConfigFields;
             fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig_core::ATW>>;
         }
 
-        impl QuickFigReservedTraitName for quickfig_core::Config<quickfig_core::config_types::JSON> {
+        impl #trait_ident for quickfig_core::Config<quickfig_core::config_types::JSON> {
             type CF = #name;
 
             fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig_core::ATW>> {
@@ -279,7 +282,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
 
-        impl QuickFigReservedTraitName for quickfig_core::Config<quickfig_core::config_types::TOML> {
+        impl #trait_ident for quickfig_core::Config<quickfig_core::config_types::TOML> {
             type CF = #name;
 
             fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig_core::ATW>> {
