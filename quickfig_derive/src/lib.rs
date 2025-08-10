@@ -173,7 +173,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                         quote! {
                             // only push if some (if parsing was successful)
                             if let Some(at) = self.parse_allowed_type(
-                                stringify!(#key),
+                                #key,
                                 quickfig_core::AllowedType::#at_ident
                             ) {
                                 at_wrappers.push(at);
@@ -183,7 +183,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                     .collect();
 
                 quote! {
-                    if !self.has_key(stringify!(#key)) {
+                    if !self.has_key(#key) {
                         println!("key not found: {}", stringify!(#key));
                     } else {
                         println!("key found: {}", stringify!(#key));

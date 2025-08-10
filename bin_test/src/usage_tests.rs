@@ -1,0 +1,125 @@
+// testing actual usage of the macro
+#![allow(dead_code, unused)]
+use anyhow::Result;
+use quickfig_core::{
+    config_types::{ JSON, TOML },
+    // AllowedType,
+    AllowedTypeWrapper,
+    Config,
+    ConfigFields,
+    GetInner,
+};
+use quickfig_derive::ConfigFields as ConfigFieldsMacro;
+use super::utils::*;
+use super::utils::TestFileType as TFT;
+
+// MODS
+// must_be_json    : testing must_be on json configs
+// must_be_toml    : testing must_be on toml configs
+// any_of_json     : testing any_of on json configs
+// any_of_toml     : testing any_of on toml configs
+
+#[cfg(test)]
+mod must_be_json {
+    use super::*;
+
+    #[test]
+    fn must_be_string_ok() {
+        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
+        testconfig.add_entry(("foo", "is string")).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.pretty_print().unwrap();
+        // testconfig.delete();
+
+        assert!(config.has_key("foo"));
+        let vals = config.get(TestEnum::String);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        assert!(vals.len() == 1);
+        let inner_s = vals.iter().find(|v| {
+            v.get_string()
+                .map(|str_val| str_val == String::from("is string"))
+                .is_some()
+        });
+        assert!(inner_s.is_some());
+
+    }
+
+    // #[test]
+    fn must_be_string_err() {
+        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
+        testconfig.add_entry(("String", 1)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        // testconfig.delete();
+
+        assert!(config.has_key("String"));
+        let vals = config.get(TestEnum::String);
+        assert!(vals.is_none());
+    }
+
+
+}
+
+
+#[allow(non_camel_case_types)]
+#[derive(ConfigFieldsMacro)]
+pub enum TestEnum {
+    // it seems like keys are getting an extra wrapping double ""
+    // accord to cargo expand stringify!(#key) adds them ala "\"foo\""
+    #[keys("String", "string", "foo")]
+    #[must_be(String)]
+    String,
+    #[must_be(char)]
+    Char,
+    #[must_be(u8)]
+    U8,
+    // #[must_be(u16)]
+    // U16,
+    // #[must_be(u32)]
+    // U32,
+    // #[must_be(u64)]
+    // U64,
+    // #[must_be(u128)]
+    // U128,
+    // #[must_be(i8)]
+    // I8,
+    // #[must_be(i16)]
+    // I16,
+    // #[must_be(i32)]
+    // I32,
+    // #[must_be(i64)]
+    // I64,
+    // #[must_be(i128)]
+    // I128,
+    // #[must_be(bool)]
+    // Bool,
+    // #[must_be(f32)]
+    // F32,
+    // #[must_be(f64)]
+    // F64,
+    // --------------- any_of
+    // high variety from different groups
+    // (String and char), (unsigned ints), (signed ints), (bool), (floats)
+    // #[any_of(String, char, bool)]
+    // String_Char_Bool,
+    // #[any_of(u8, u16, u32)]
+    // U8_U16_U32,
+    // #[any_of(i8, i16, i32)]
+    // I8_I16_I32,
+    // #[any_of(u64, u128, f64)]
+    // U64_U128_F64,
+    // #[any_of(i64, f32, bool)]
+    // I64_F32_Bool,
+    // #[any_of(u8, f32, String)]
+    // U8_F32_String,
+    // #[any_of(i8, u32, f64)]
+    // I8_U32_F64,
+    // #[any_of(i16, bool, f64)]
+    // I16_Bool_F64,
+    // #[any_of(char, f32, u16)]
+    // Char_F32_U16,
+    // #[any_of(i128, bool, u64)]
+    // I128_Bool_U64,
+}
+
+
