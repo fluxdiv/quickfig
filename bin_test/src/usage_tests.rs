@@ -19,54 +19,11 @@ use super::utils::TestFileType as TFT;
 // any_of_json     : testing any_of on json configs
 // any_of_toml     : testing any_of on toml configs
 
-#[cfg(test)]
-mod must_be_json {
-    use super::*;
-
-    #[test]
-    fn must_be_string_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("foo", "is string")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.pretty_print().unwrap();
-        // testconfig.delete();
-
-        assert!(config.has_key("foo"));
-        let vals = config.get(TestEnum::String);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner_s = vals.iter().find(|v| {
-            v.get_string()
-                .map(|str_val| str_val == String::from("is string"))
-                .is_some()
-        });
-        assert!(inner_s.is_some());
-
-    }
-
-    // #[test]
-    fn must_be_string_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("String", 1)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        // testconfig.delete();
-
-        assert!(config.has_key("String"));
-        let vals = config.get(TestEnum::String);
-        assert!(vals.is_none());
-    }
-
-
-}
-
 
 #[allow(non_camel_case_types)]
 #[derive(ConfigFieldsMacro)]
 pub enum TestEnum {
-    // it seems like keys are getting an extra wrapping double ""
-    // accord to cargo expand stringify!(#key) adds them ala "\"foo\""
-    #[keys("String", "string", "foo")]
+    #[keys("String")]
     #[must_be(String)]
     String,
     #[must_be(char)]
@@ -122,4 +79,115 @@ pub enum TestEnum {
     // I128_Bool_U64,
 }
 
+
+#[cfg(test)]
+mod must_be_json {
+    use super::*;
+
+    // ---------------------------------------------------------------
+    // ------------ String
+    #[test]
+    fn must_be_string_ok() {
+        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
+        testconfig.add_entry(("String", "is string")).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("String"));
+        let vals = config.get(TestEnum::String);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        assert!(vals.len() == 1);
+        let inner_s = vals.iter().find(|v| {
+            v.get_string()
+                .map(|str_val| str_val == String::from("is string"))
+                .is_some()
+        });
+        assert!(inner_s.is_some());
+    }
+
+    #[test]
+    fn must_be_string_err() {
+        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
+        testconfig.add_entry(("String", 1)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("String"));
+        let vals = config.get(TestEnum::String);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ char
+    #[test]
+    fn must_be_char_ok() {
+        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
+        testconfig.add_entry(("Char", 'c')).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("Char"));
+        let vals = config.get(TestEnum::Char);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        assert!(vals.len() == 1);
+        let inner = vals.iter().find(|v| {
+            v.get_char()
+                .map(|char_val| char_val == 'c')
+                .is_some()
+        });
+        assert!(inner.is_some());
+    }
+
+    // TODO: this passes but might need more extensive tsts
+    #[test]
+    fn must_be_char_err() {
+        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
+        testconfig.add_entry(("Char", 1)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("Char"));
+        let vals = config.get(TestEnum::Char);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ u8
+    #[test]
+    fn must_be_u8_ok() {
+        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
+        testconfig.add_entry(("U8", 255)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("U8"));
+        let vals = config.get(TestEnum::U8);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        assert!(vals.len() == 1);
+        let inner = vals.iter().find(|v| {
+            v.get_u8()
+                .map(|u8_val| u8_val == 255)
+                .is_some()
+        });
+        assert!(inner.is_some());
+    }
+
+    #[test]
+    fn must_be_u8_err() {
+        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
+        testconfig.add_entry(("U8", "foo")).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("U8"));
+        let vals = config.get(TestEnum::U8);
+        assert!(vals.is_none());
+    }
+
+}
 
