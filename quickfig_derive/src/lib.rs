@@ -249,7 +249,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
     }
 
     // Generate unique ident so user can derive on multiple types
-    let trait_name = format!("QuickfigConfigTrait_{}", name);
+    let trait_name = format!("QuickfigConfigTrait{}", name);
     let trait_ident = syn::Ident::new(&trait_name, name.span());
 
     let impl_gen = quote! {

@@ -6,9 +6,12 @@ use quickfig_core::{
     AllowedTypeWrapper,
     Config,
     ConfigFields,
-    GetInner
+    GetInner,
 };
 use quickfig_derive::ConfigFields as ConfigFieldsMacro;
+mod config_tests;
+mod usage_tests;
+mod utils;
 
 #[derive(ConfigFieldsMacro)]
 enum MyConfigFields {
@@ -100,24 +103,6 @@ fn main() -> Result<()> {
 
         }
     }
-
-    Ok(())
-}
-
-
-
-fn config_usage_ex() -> Result<()> {
-    // Opening a hardcoded path
-    let cfg = Config::<JSON>::open("x.json");
-
-    // Opening the first path that matches a closure
-    let cfg2 = Config::<TOML>::open_first_match(
-        vec!["x.toml", "y.toml", "z.toml"],
-        Some(Box::new(|path_buf| {
-            // can read the file, parse file names, do whatever in here to determine a match
-            Some(path_buf)
-        }))
-    );
 
     Ok(())
 }
