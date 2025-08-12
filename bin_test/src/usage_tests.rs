@@ -16,6 +16,7 @@ use super::utils::TestFileType as TFT;
 // MODS
 // must_be_json    : testing must_be on json configs
 // must_be_toml    : testing must_be on toml configs
+
 // any_of_json     : testing any_of on json configs
 // any_of_toml     : testing any_of on toml configs
 
@@ -28,10 +29,8 @@ pub enum TestEnum {
     String,
     #[must_be(char)]
     Char,
-
     #[must_be(bool)]
     Bool,
-
     #[must_be(u8)]
     U8,
     #[must_be(u16)]
@@ -52,7 +51,6 @@ pub enum TestEnum {
     I64,
     #[must_be(i128)]
     I128,
-
     #[must_be(f32)]
     F32,
     #[must_be(f64)]
@@ -60,27 +58,890 @@ pub enum TestEnum {
     // --------------- any_of
     // high variety from different groups
     // (String and char), (unsigned ints), (signed ints), (bool), (floats)
-    // #[any_of(String, char, bool)]
-    // String_Char_Bool,
-    // #[any_of(u8, u16, u32)]
-    // U8_U16_U32,
-    // #[any_of(i8, i16, i32)]
-    // I8_I16_I32,
+    #[keys("A", "B", "C")]
+    #[any_of(String, char, bool)]
+    String_Char_Bool,
+
+    #[keys("A", "B", "C")]
+    #[any_of(u8, u16, u32)]
+    U8_U16_U32,
+
+    #[keys("A", "B", "C")]
+    #[any_of(i8, i16, i32)]
+    I8_I16_I32,
+
+    #[keys("A", "B", "C")]
+    #[any_of(u8, i8, char)]
+    U8_I8_Char,
+    
+    #[keys("A", "B", "C")]
+    #[any_of(u8, i8, bool)]
+    U8_I8_Bool,
+    
+    #[keys("A", "B", "C")]
+    #[any_of(u8, i8, f32)]
+    U8_I8_F32,
+
     // #[any_of(u64, u128, f64)]
     // U64_U128_F64,
-    // #[any_of(i64, f32, bool)]
-    // I64_F32_Bool,
-    // #[any_of(u8, f32, String)]
-    // U8_F32_String,
-    // #[any_of(i8, u32, f64)]
-    // I8_U32_F64,
-    // #[any_of(i16, bool, f64)]
-    // I16_Bool_F64,
-    // #[any_of(char, f32, u16)]
-    // Char_F32_U16,
-    // #[any_of(i128, bool, u64)]
-    // I128_Bool_U64,
 }
+
+#[cfg(test)]
+mod any_of_json {
+    use super::*;
+    const TEST_FILE_TYPE: TestFileType = TFT::JSON;
+    // ---------------------------------------------------------------
+    // ------------ String_Char_Bool
+    #[test]
+    fn any_of_string_char_bool_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", "is string")).unwrap();
+        testconfig.add_entry(("B", 'c')).unwrap();
+        testconfig.add_entry(("C", true)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::String_Char_Bool);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        // for atw in vals.iter() {
+        //     println!("---");
+        //     if let Some(s) = atw.get_string() {
+        //         println!("String value: {}", s);
+        //     }
+        //
+        //     if let Some(c) = atw.get_char() {
+        //         println!("char value: {}", c);
+        //     }
+        //
+        //     if let Some(b) = atw.get_bool() {
+        //         println!("bool value: {}", b);
+        //     }
+        // }
+
+        let inner_a = vals.iter().find(|v| {
+            v.get_string()
+                .map(|str_val| str_val == String::from("is string"))
+                .is_some()
+        });
+        assert!(inner_a.is_some());
+
+        let inner_b = vals.iter().find(|v| {
+            v.get_char()
+                .map(|char_val| char_val == 'c')
+                .is_some()
+        });
+        assert!(inner_b.is_some());
+
+        let inner_c = vals.iter().find(|v| {
+            v.get_bool()
+                .map(|bool_val| bool_val)
+                .is_some()
+        });
+        assert!(inner_c.is_some());
+    }
+
+    #[test]
+    fn any_of_string_char_bool_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", 1)).unwrap();
+        testconfig.add_entry(("B", 2.94f32)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+
+        let vals = config.get(TestEnum::String_Char_Bool);
+        assert!(vals.is_none());
+    }
+
+
+    // ---------------------------------------------------------------
+    // ------------ u8_u16_u32
+    #[test]
+    fn any_of_u8_u16_u32_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u32::MAX)).unwrap();
+        testconfig.add_entry(("B", u8::MAX)).unwrap();
+        testconfig.add_entry(("C", u16::MAX)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_U16_U32);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in u8 (u8::MAX)
+        let mut u8_vals: Vec<u8> = vec![];
+        // Only 2 of the 3 values fits in u16 (u8::MAX and u16::MAX)
+        let mut u16_vals: Vec<u16> = vec![];
+        // All  3 of the 3 values fits in u32 
+        let mut u32_vals: Vec<u32> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_u8() {
+                u8_vals.push(s);
+            }
+            if let Some(c) = atw.get_u16() {
+                u16_vals.push(c);
+            }
+            if let Some(b) = atw.get_u32() {
+                u32_vals.push(b);
+            }
+        }
+
+        u8_vals.sort();
+        u16_vals.sort();
+        u32_vals.sort();
+
+        let expected: Vec<u8> = vec![u8::MAX];
+        assert!(u8_vals == expected);
+        
+        let expected: Vec<u16> = vec![u8::MAX.into(), u16::MAX];
+        assert!(u16_vals == expected);
+
+        let expected: Vec<u32> = vec![u8::MAX.into(), u16::MAX.into(), u32::MAX];
+        assert!(u32_vals == expected);
+
+        // assert!(u8_vals.len() == 1);
+        // assert!(u16_vals.len() == 2);
+        // assert!(u32_vals.len() == 3);
+        // println!("u8_vals: {:#?}", u8_vals);
+        // println!("u16_vals: {:#?}", u16_vals);
+        // println!("u32_vals: {:#?}", u32_vals);
+    }
+
+    #[test]
+    fn any_of_u8_u16_u32_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", -1)).unwrap();
+        testconfig.add_entry(("B", 2.94f32)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+
+        let vals = config.get(TestEnum::U8_U16_U32);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ i8_i16_i32
+
+    #[test]
+    fn any_of_i8_i16_i32_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", i32::MIN)).unwrap();
+        testconfig.add_entry(("B", i8::MIN)).unwrap();
+        testconfig.add_entry(("C", i16::MIN)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::I8_I16_I32);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in i8 (i8::MIN)
+        let mut i8_vals: Vec<i8> = vec![];
+        // Only 2 of the 3 values fits in i16 (i8::MIN and i16::MIN)
+        let mut i16_vals: Vec<i16> = vec![];
+        // All  3 of the 3 values fits in i32 
+        let mut i32_vals: Vec<i32> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_i8() {
+                i8_vals.push(s);
+            }
+            if let Some(c) = atw.get_i16() {
+                i16_vals.push(c);
+            }
+            if let Some(b) = atw.get_i32() {
+                i32_vals.push(b);
+            }
+        }
+
+        i8_vals.sort_by(|a, b| b.cmp(a));
+        i16_vals.sort_by(|a, b| b.cmp(a));
+        i32_vals.sort_by(|a, b| b.cmp(a));
+
+        let expected: Vec<i8> = vec![i8::MIN];
+        // println!("i8_vals: {:#?} | expected: {:#?}", i8_vals, expected);
+        assert!(i8_vals == expected);
+        
+        let expected: Vec<i16> = vec![i8::MIN.into(), i16::MIN];
+        // println!("i16_vals: {:#?} | expected: {:#?}", i16_vals, expected);
+        assert!(i16_vals == expected);
+
+        let expected: Vec<i32> = vec![i8::MIN.into(), i16::MIN.into(), i32::MIN];
+        // println!("i32_vals: {:#?} | expected: {:#?}", i32_vals, expected);
+        assert!(i32_vals == expected);
+    }
+
+    #[test]
+    fn any_of_i8_i16_i32_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u32::MAX)).unwrap();
+        testconfig.add_entry(("B", 2.94f32)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+
+        let vals = config.get(TestEnum::I8_I16_I32);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ u8_i8_char
+
+    #[test]
+    fn any_of_u8_i8_char_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u8::MAX)).unwrap();
+        testconfig.add_entry(("B", i8::MIN)).unwrap();
+        testconfig.add_entry(("C", 'c')).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_Char);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in u8 (u8::MAX)
+        let mut u8_vals: Vec<u8> = vec![];
+        // Only 1 of the 3 values fits in i8 (i8::MIN)
+        let mut i8_vals: Vec<i8> = vec![];
+        // Only 1 of the 3 values should deserialize into char ('c')
+        let mut char_vals: Vec<char> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_u8() {
+                u8_vals.push(s);
+            }
+            if let Some(c) = atw.get_i8() {
+                i8_vals.push(c);
+            }
+            if let Some(b) = atw.get_char() {
+                char_vals.push(b);
+            }
+        }
+
+        let expected: Vec<u8> = vec![u8::MAX];
+        assert!(u8_vals == expected);
+        
+        let expected: Vec<i8> = vec![i8::MIN];
+        assert!(i8_vals == expected);
+
+        let expected: Vec<char> = vec!['c'];
+        assert!(char_vals == expected);
+    }
+
+    #[test]
+    fn any_of_u8_i8_char_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u16::MAX)).unwrap();
+        testconfig.add_entry(("B", i16::MIN)).unwrap();
+        testconfig.add_entry(("C", 2.94f32)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_Char);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ u8_i8_bool
+
+    #[test]
+    fn any_of_u8_i8_bool_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u8::MAX)).unwrap();
+        testconfig.add_entry(("B", i8::MIN)).unwrap();
+        testconfig.add_entry(("C", true)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_Bool);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in u8 (u8::MAX)
+        let mut u8_vals: Vec<u8> = vec![];
+        // Only 1 of the 3 values fits in i8 (i8::MIN)
+        let mut i8_vals: Vec<i8> = vec![];
+        // Only 1 of the 3 values should deserialize into bool
+        let mut bool_vals: Vec<bool> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_u8() {
+                u8_vals.push(s);
+            }
+            if let Some(c) = atw.get_i8() {
+                i8_vals.push(c);
+            }
+            if let Some(b) = atw.get_bool() {
+                bool_vals.push(b);
+            }
+        }
+
+        let expected: Vec<u8> = vec![u8::MAX];
+        assert!(u8_vals == expected);
+        
+        let expected: Vec<i8> = vec![i8::MIN];
+        assert!(i8_vals == expected);
+
+        let expected: Vec<bool> = vec![true];
+        assert!(bool_vals == expected);
+    }
+
+    #[test]
+    fn any_of_u8_i8_bool_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u16::MAX)).unwrap();
+        testconfig.add_entry(("B", i16::MIN)).unwrap();
+        testconfig.add_entry(("C", 2.94f32)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_Bool);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ u8_i8_f32
+
+    #[test]
+    fn any_of_u8_i8_f32_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u8::MAX)).unwrap();
+        testconfig.add_entry(("B", i8::MIN)).unwrap();
+        testconfig.add_entry(("C", f32::MIN)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_F32);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in u8 (u8::MAX)
+        let mut u8_vals: Vec<u8> = vec![];
+        // Only 1 of the 3 values fits in i8 (i8::MIN)
+        let mut i8_vals: Vec<i8> = vec![];
+        // All  3 of the 3 values should deserialize into f32 (f32::MIN)
+        let mut f32_vals: Vec<f32> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_u8() {
+                u8_vals.push(s);
+            }
+            if let Some(c) = atw.get_i8() {
+                i8_vals.push(c);
+            }
+            if let Some(b) = atw.get_f32() {
+                f32_vals.push(b);
+            }
+        }
+
+        let expected: Vec<u8> = vec![u8::MAX];
+        assert!(u8_vals == expected);
+        
+        let expected: Vec<i8> = vec![i8::MIN];
+        assert!(i8_vals == expected);
+
+        let expected: Vec<f32> = vec![f32::MIN, i8::MIN.into(), u8::MAX.into()];
+        let e = f32_vals.iter().all(|v| {
+            v.eq(&f32::MIN) || v.eq(&f32::from(i8::MIN)) || v.eq(&f32::from(u8::MAX))
+        });
+        assert!(e);
+    }
+
+    // This probably -should- error, but de/serializing floats gets weird
+    // #[test]
+    // fn any_of_u8_i8_f32_err() {
+    //     let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+    //     testconfig.add_entry(("A", f64::MIN)).unwrap();
+    //     let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+    //     // testconfig.pretty_print().unwrap();
+    //     testconfig.delete();
+    //     assert!(config.has_key("A"));
+    //     let vals = config.get(TestEnum::U8_I8_F32);
+    //     println!("f64::MIN: {}", f64::MIN);
+    //     for v in vals.unwrap().iter() {
+    //         println!("v: {:#?}", v);
+    //     }
+    //     // assert!(vals.is_none());
+    // }
+}
+
+#[cfg(test)]
+mod any_of_toml {
+    use super::*;
+    const TEST_FILE_TYPE: TestFileType = TFT::TOML;
+    // ---------------------------------------------------------------
+    // ------------ String_Char_Bool
+    #[test]
+    fn any_of_string_char_bool_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", "is string")).unwrap();
+        testconfig.add_entry(("B", 'c')).unwrap();
+        testconfig.add_entry(("C", true)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::String_Char_Bool);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        // for atw in vals.iter() {
+        //     println!("---");
+        //     if let Some(s) = atw.get_string() {
+        //         println!("String value: {}", s);
+        //     }
+        //
+        //     if let Some(c) = atw.get_char() {
+        //         println!("char value: {}", c);
+        //     }
+        //
+        //     if let Some(b) = atw.get_bool() {
+        //         println!("bool value: {}", b);
+        //     }
+        // }
+
+        let inner_a = vals.iter().find(|v| {
+            v.get_string()
+                .map(|str_val| str_val == String::from("is string"))
+                .is_some()
+        });
+        assert!(inner_a.is_some());
+
+        let inner_b = vals.iter().find(|v| {
+            v.get_char()
+                .map(|char_val| char_val == 'c')
+                .is_some()
+        });
+        assert!(inner_b.is_some());
+
+        let inner_c = vals.iter().find(|v| {
+            v.get_bool()
+                .map(|bool_val| bool_val)
+                .is_some()
+        });
+        assert!(inner_c.is_some());
+    }
+
+    #[test]
+    fn any_of_string_char_bool_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", 1)).unwrap();
+        testconfig.add_entry(("B", 2.94f32)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+
+        let vals = config.get(TestEnum::String_Char_Bool);
+        assert!(vals.is_none());
+    }
+
+
+    // ---------------------------------------------------------------
+    // ------------ u8_u16_u32
+    #[test]
+    fn any_of_u8_u16_u32_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u32::MAX)).unwrap();
+        testconfig.add_entry(("B", u8::MAX)).unwrap();
+        testconfig.add_entry(("C", u16::MAX)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_U16_U32);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in u8 (u8::MAX)
+        let mut u8_vals: Vec<u8> = vec![];
+        // Only 2 of the 3 values fits in u16 (u8::MAX and u16::MAX)
+        let mut u16_vals: Vec<u16> = vec![];
+        // All  3 of the 3 values fits in u32 
+        let mut u32_vals: Vec<u32> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_u8() {
+                u8_vals.push(s);
+            }
+            if let Some(c) = atw.get_u16() {
+                u16_vals.push(c);
+            }
+            if let Some(b) = atw.get_u32() {
+                u32_vals.push(b);
+            }
+        }
+
+        u8_vals.sort();
+        u16_vals.sort();
+        u32_vals.sort();
+
+        let expected: Vec<u8> = vec![u8::MAX];
+        assert!(u8_vals == expected);
+        
+        let expected: Vec<u16> = vec![u8::MAX.into(), u16::MAX];
+        assert!(u16_vals == expected);
+
+        let expected: Vec<u32> = vec![u8::MAX.into(), u16::MAX.into(), u32::MAX];
+        assert!(u32_vals == expected);
+
+        // assert!(u8_vals.len() == 1);
+        // assert!(u16_vals.len() == 2);
+        // assert!(u32_vals.len() == 3);
+        // println!("u8_vals: {:#?}", u8_vals);
+        // println!("u16_vals: {:#?}", u16_vals);
+        // println!("u32_vals: {:#?}", u32_vals);
+    }
+
+    #[test]
+    fn any_of_u8_u16_u32_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", -1)).unwrap();
+        testconfig.add_entry(("B", 2.94f32)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+
+        let vals = config.get(TestEnum::U8_U16_U32);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ i8_i16_i32
+
+    #[test]
+    fn any_of_i8_i16_i32_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", i32::MIN)).unwrap();
+        testconfig.add_entry(("B", i8::MIN)).unwrap();
+        testconfig.add_entry(("C", i16::MIN)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::I8_I16_I32);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in i8 (i8::MIN)
+        let mut i8_vals: Vec<i8> = vec![];
+        // Only 2 of the 3 values fits in i16 (i8::MIN and i16::MIN)
+        let mut i16_vals: Vec<i16> = vec![];
+        // All  3 of the 3 values fits in i32 
+        let mut i32_vals: Vec<i32> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_i8() {
+                i8_vals.push(s);
+            }
+            if let Some(c) = atw.get_i16() {
+                i16_vals.push(c);
+            }
+            if let Some(b) = atw.get_i32() {
+                i32_vals.push(b);
+            }
+        }
+
+        i8_vals.sort_by(|a, b| b.cmp(a));
+        i16_vals.sort_by(|a, b| b.cmp(a));
+        i32_vals.sort_by(|a, b| b.cmp(a));
+
+        let expected: Vec<i8> = vec![i8::MIN];
+        // println!("i8_vals: {:#?} | expected: {:#?}", i8_vals, expected);
+        assert!(i8_vals == expected);
+        
+        let expected: Vec<i16> = vec![i8::MIN.into(), i16::MIN];
+        // println!("i16_vals: {:#?} | expected: {:#?}", i16_vals, expected);
+        assert!(i16_vals == expected);
+
+        let expected: Vec<i32> = vec![i8::MIN.into(), i16::MIN.into(), i32::MIN];
+        // println!("i32_vals: {:#?} | expected: {:#?}", i32_vals, expected);
+        assert!(i32_vals == expected);
+    }
+
+    #[test]
+    fn any_of_i8_i16_i32_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u32::MAX)).unwrap();
+        testconfig.add_entry(("B", 2.94f32)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+
+        let vals = config.get(TestEnum::I8_I16_I32);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ u8_i8_char
+
+    #[test]
+    fn any_of_u8_i8_char_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u8::MAX)).unwrap();
+        testconfig.add_entry(("B", i8::MIN)).unwrap();
+        testconfig.add_entry(("C", 'c')).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_Char);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in u8 (u8::MAX)
+        let mut u8_vals: Vec<u8> = vec![];
+        // Only 1 of the 3 values fits in i8 (i8::MIN)
+        let mut i8_vals: Vec<i8> = vec![];
+        // Only 1 of the 3 values should deserialize into char ('c')
+        let mut char_vals: Vec<char> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_u8() {
+                u8_vals.push(s);
+            }
+            if let Some(c) = atw.get_i8() {
+                i8_vals.push(c);
+            }
+            if let Some(b) = atw.get_char() {
+                char_vals.push(b);
+            }
+        }
+
+        let expected: Vec<u8> = vec![u8::MAX];
+        assert!(u8_vals == expected);
+        
+        let expected: Vec<i8> = vec![i8::MIN];
+        assert!(i8_vals == expected);
+
+        let expected: Vec<char> = vec!['c'];
+        assert!(char_vals == expected);
+    }
+
+    #[test]
+    fn any_of_u8_i8_char_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u16::MAX)).unwrap();
+        testconfig.add_entry(("B", i16::MIN)).unwrap();
+        testconfig.add_entry(("C", 2.94f32)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_Char);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ u8_i8_bool
+
+    #[test]
+    fn any_of_u8_i8_bool_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u8::MAX)).unwrap();
+        testconfig.add_entry(("B", i8::MIN)).unwrap();
+        testconfig.add_entry(("C", true)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_Bool);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in u8 (u8::MAX)
+        let mut u8_vals: Vec<u8> = vec![];
+        // Only 1 of the 3 values fits in i8 (i8::MIN)
+        let mut i8_vals: Vec<i8> = vec![];
+        // Only 1 of the 3 values should deserialize into bool
+        let mut bool_vals: Vec<bool> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_u8() {
+                u8_vals.push(s);
+            }
+            if let Some(c) = atw.get_i8() {
+                i8_vals.push(c);
+            }
+            if let Some(b) = atw.get_bool() {
+                bool_vals.push(b);
+            }
+        }
+
+        let expected: Vec<u8> = vec![u8::MAX];
+        assert!(u8_vals == expected);
+        
+        let expected: Vec<i8> = vec![i8::MIN];
+        assert!(i8_vals == expected);
+
+        let expected: Vec<bool> = vec![true];
+        assert!(bool_vals == expected);
+    }
+
+    #[test]
+    fn any_of_u8_i8_bool_err() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u16::MAX)).unwrap();
+        testconfig.add_entry(("B", i16::MIN)).unwrap();
+        testconfig.add_entry(("C", 2.94f32)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_Bool);
+        assert!(vals.is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // ------------ u8_i8_f32
+
+    #[test]
+    fn any_of_u8_i8_f32_ok() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        testconfig.add_entry(("A", u8::MAX)).unwrap();
+        testconfig.add_entry(("B", i8::MIN)).unwrap();
+        testconfig.add_entry(("C", f32::MIN)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        // testconfig.pretty_print().unwrap();
+        testconfig.delete();
+
+        assert!(config.has_key("A"));
+        assert!(config.has_key("B"));
+        assert!(config.has_key("C"));
+
+        let vals = config.get(TestEnum::U8_I8_F32);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        // Only 1 of the 3 values fits in u8 (u8::MAX)
+        let mut u8_vals: Vec<u8> = vec![];
+        // Only 1 of the 3 values fits in i8 (i8::MIN)
+        let mut i8_vals: Vec<i8> = vec![];
+        // All  3 of the 3 values should deserialize into f32 (f32::MIN)
+        let mut f32_vals: Vec<f32> = vec![];
+
+        for atw in vals.iter() {
+            if let Some(s) = atw.get_u8() {
+                u8_vals.push(s);
+            }
+            if let Some(c) = atw.get_i8() {
+                i8_vals.push(c);
+            }
+            if let Some(b) = atw.get_f32() {
+                f32_vals.push(b);
+            }
+        }
+
+        let expected: Vec<u8> = vec![u8::MAX];
+        assert!(u8_vals == expected);
+        
+        let expected: Vec<i8> = vec![i8::MIN];
+        assert!(i8_vals == expected);
+
+        let expected: Vec<f32> = vec![f32::MIN, i8::MIN.into(), u8::MAX.into()];
+        let e = f32_vals.iter().all(|v| {
+            v.eq(&f32::MIN) || v.eq(&f32::from(i8::MIN)) || v.eq(&f32::from(u8::MAX))
+        });
+        assert!(e);
+    }
+
+    // This probably -should- error, but de/serializing floats gets weird
+    // #[test]
+    // fn any_of_u8_i8_f32_err() {
+    //     let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+    //     testconfig.add_entry(("A", f64::MIN)).unwrap();
+    //     let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+    //     // testconfig.pretty_print().unwrap();
+    //     testconfig.delete();
+    //     assert!(config.has_key("A"));
+    //     let vals = config.get(TestEnum::U8_I8_F32);
+    //     println!("f64::MIN: {}", f64::MIN);
+    //     for v in vals.unwrap().iter() {
+    //         println!("v: {:#?}", v);
+    //     }
+    //     // assert!(vals.is_none());
+    // }
+}
+
 
 
 #[cfg(test)]

@@ -36,7 +36,7 @@ fn meta_to_allowedtype(meta: ParseNestedMeta<'_>) -> Result<AllowedType, syn::Er
             if let Some(at) = AllowedType::from_type_path(&type_path) {
                 return Ok(at);
             } else {
-                return Err(meta.error("Unsupported type"));
+                return Err(meta.error("Unsupported type. Available types are String, bool, char, u8..u128, i8..i128, f32..f64"));
             }
         } else {
             return Err(meta.error("ty is not Type::Path"));
