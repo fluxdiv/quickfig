@@ -36,7 +36,7 @@ fn meta_to_allowedtype(meta: ParseNestedMeta<'_>) -> Result<AllowedType, syn::Er
             if let Some(at) = AllowedType::from_type_path(&type_path) {
                 return Ok(at);
             } else {
-                return Err(meta.error("Unsupported type"));
+                return Err(meta.error("Unsupported type. Available types are String, bool, char, u8..u128, i8..i128, f32..f64"));
             }
         } else {
             return Err(meta.error("ty is not Type::Path"));
@@ -173,7 +173,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                         quote! {
                             // only push if some (if parsing was successful)
                             if let Some(at) = self.parse_allowed_type(
-                                stringify!(#key),
+                                #key,
                                 quickfig_core::AllowedType::#at_ident
                             ) {
                                 at_wrappers.push(at);
@@ -183,7 +183,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                     .collect();
 
                 quote! {
-                    if !self.has_key(stringify!(#key)) {
+                    if !self.has_key(#key) {
                         println!("key not found: {}", stringify!(#key));
                     } else {
                         println!("key found: {}", stringify!(#key));

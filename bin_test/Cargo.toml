@@ -1,12 +1,9 @@
+# home/user/quickfig/bin_test/Cargo.toml
 [package]
 name = "bin_test"
 version = "0.1.0"
-edition = "2024"
+# edition = "2024"
 publish = false
-
-# [[test]]
-# name = "tests"
-# path = "tests/main.rs"
 
 [dependencies]
 quickfig_core = { path = "../quickfig_core" }

@@ -74,6 +74,31 @@ impl TestFile {
         self.file_type.clone()
     }
 
+    // * Manually create toml file with u64/u128/i64/i128 entries
+    // * Needed since `toml` crate cannot serialize numbers gthan i64::MAX
+    //   or less than i64::MIN, but it can deserialize them
+    // * File contains:
+    // ```toml
+    // U64  = 18446744073709551615
+    // U128 = 340282366920938463463374607431768211455
+    // I64  = 9223372036854775807
+    // I128 = 170141183460469231731687303715884105727
+    // ```
+    // pub fn new_toml_big_nums() -> Result<Self, FileError> {
+    //     let path = Self::random_file_path(TestFileType::TOML);
+    //     let mut file = std::fs::OpenOptions::new()
+    //         .write(true)
+    //         .create_new(true)
+    //         .open(&path)
+    //         .map_err(FileError::IoError)?;
+    //     let content = r#""#;
+    //     file.write_all(content.as_bytes()).map_err(FileError::IoError)?;
+    //     Ok(TestFile {
+    //         path,
+    //         file_type: TestFileType::TOML
+    //     })
+    // }
+
     /// * Generates random path from timestamp
     /// * Creates file at that path
     /// * Returns Self containing the path

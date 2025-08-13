@@ -17,8 +17,6 @@ mod tests_misc {
     use super::*;
     use std::path::PathBuf;
 
-    // Test non-deserializable file
-
     #[test]
     fn test_empty_file_1() {
         // Trying to create Config w/ empty json file should error
