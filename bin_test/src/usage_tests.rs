@@ -14,12 +14,15 @@ use super::utils::*;
 use super::utils::TestFileType as TFT;
 
 // MODS
-// must_be_json    : testing must_be on json configs
-// must_be_toml    : testing must_be on toml configs
-
-// any_of_json     : testing any_of on json configs
-// any_of_toml     : testing any_of on toml configs
-
+//
+// must_be_json      : testing must_be on json configs
+// must_be_toml      : testing must_be on toml configs
+//
+// any_of_json       : testing any_of on json configs
+// any_of_toml       : testing any_of on toml configs
+//
+// misc_tests_json   : overlapping keys,
+// misc_tests_toml   : overlapping keys,
 
 #[allow(non_camel_case_types)]
 #[derive(ConfigFieldsMacro)]
@@ -85,6 +88,7 @@ pub enum TestEnum {
     // #[any_of(u64, u128, f64)]
     // U64_U128_F64,
 }
+
 
 #[cfg(test)]
 mod any_of_json {
@@ -943,7 +947,6 @@ mod any_of_toml {
 }
 
 
-
 #[cfg(test)]
 mod must_be_json {
     use super::*;
@@ -1447,7 +1450,6 @@ mod must_be_json {
         assert!(vals.is_none());
     }
 }
-
 
 
 #[cfg(test)]
@@ -1979,4 +1981,263 @@ mod must_be_toml {
     }
 }
 
+#[cfg(test)]
+mod misc_tests_json {
+    use anyhow::Result;
+    use quickfig_core::{
+        config_types::{ JSON, TOML },
+        // AllowedType,
+        AllowedTypeWrapper,
+        Config,
+        ConfigFields,
+        GetInner,
+    };
+    use quickfig_derive::ConfigFields as ConfigFieldsMacro;
+    use super::super::utils::*;
+    use super::super::utils::TestFileType as TFT;
+
+    const TEST_FILE_TYPE: TestFileType = TFT::JSON;
+
+    #[derive(ConfigFieldsMacro)]
+    enum MiscTestsEnum {
+        // ----------------------------------------------------
+        // Overlapping keys work without regard for each other,
+        // u8::MAX will work for Foo and Foo3 (but not Foo2)
+        // i8::MIN will work for Foo2 (but not Foo or Foo3)
+        // u32::MAX will work for Foo3 (but not Foo or Foo2)
+        // ----------------------------
+        // Foo's key is default "Foo"
+        #[must_be(u8)]
+        Foo,
+        // Foo2's key is also "Foo"
+        #[keys("Foo")]
+        #[must_be(i8)]
+        Foo2,
+        // Foo3's key is also "Foo"
+        #[keys("Foo")]
+        #[must_be(u32)]
+        Foo3
+    }
+
+
+    #[test]
+    fn overlapping_keys_json_1() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        // This should work for Foo and Foo3, but not Foo2
+        testconfig.add_entry(("Foo", u8::MAX)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete().unwrap();
+
+        assert!(config.has_key("Foo"));
+
+        // Test works for Foo
+        let vals = config.get(MiscTestsEnum::Foo);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        let f = vals.iter().any(|v| {
+            v.get_u8().is_some()
+        });
+        assert!(f);
+
+        // Test doesnt work for Foo2
+        let vals = config.get(MiscTestsEnum::Foo2);
+        assert!(vals.is_none());
+
+        // Test works for Foo3
+        let vals = config.get(MiscTestsEnum::Foo3);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        let f = vals.iter().any(|v| {
+            v.get_u32().is_some()
+        });
+        assert!(f);
+    }
+
+
+    #[test]
+    fn overlapping_keys_json_2() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        // This should work for Foo2 only
+        testconfig.add_entry(("Foo", i8::MIN)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete().unwrap();
+
+        assert!(config.has_key("Foo"));
+
+        // Test doesnt works for Foo
+        let vals = config.get(MiscTestsEnum::Foo);
+        assert!(vals.is_none());
+
+        // Test works for Foo2
+        let vals = config.get(MiscTestsEnum::Foo2);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        let f = vals.iter().any(|v| {
+            v.get_i8().is_some()
+        });
+        assert!(f);
+
+        // Test doesnt works for Foo3
+        let vals = config.get(MiscTestsEnum::Foo3);
+        assert!(vals.is_none());
+    }
+
+    #[test]
+    fn overlapping_keys_json_3() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        // This should work for Foo3, but not Foo or Foo2
+        testconfig.add_entry(("Foo", u32::MAX)).unwrap();
+        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
+        testconfig.delete().unwrap();
+
+        assert!(config.has_key("Foo"));
+
+        // Test doesnt works for Foo
+        let vals = config.get(MiscTestsEnum::Foo);
+        assert!(vals.is_none());
+
+        // Test doesnt work for Foo2
+        let vals = config.get(MiscTestsEnum::Foo2);
+        assert!(vals.is_none());
+
+        // Test works for Foo3
+        let vals = config.get(MiscTestsEnum::Foo3);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        let f = vals.iter().any(|v| {
+            v.get_u32().is_some()
+        });
+        assert!(f);
+    }
+}
+
+
+#[cfg(test)]
+mod misc_tests_toml {
+    use anyhow::Result;
+    use quickfig_core::{
+        config_types::{ JSON, TOML },
+        AllowedTypeWrapper,
+        Config,
+        ConfigFields,
+        GetInner,
+    };
+    use quickfig_derive::ConfigFields as ConfigFieldsMacro;
+    use super::super::utils::*;
+    use super::super::utils::TestFileType as TFT;
+
+    const TEST_FILE_TYPE: TestFileType = TFT::TOML;
+
+    #[derive(ConfigFieldsMacro)]
+    enum MiscTestsEnum {
+        // ----------------------------------------------------
+        // Overlapping keys work without regard for each other,
+        // u8::MAX will work for Foo and Foo3 (but not Foo2)
+        // i8::MIN will work for Foo2 (but not Foo or Foo3)
+        // u32::MAX will work for Foo3 (but not Foo or Foo2)
+        // ----------------------------
+        // Foo's key is default "Foo"
+        #[must_be(u8)]
+        Foo,
+        // Foo2's key is also "Foo"
+        #[keys("Foo")]
+        #[must_be(i8)]
+        Foo2,
+        // Foo3's key is also "Foo"
+        #[keys("Foo")]
+        #[must_be(u32)]
+        Foo3
+    }
+
+
+    #[test]
+    fn overlapping_keys_toml_1() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        // This should work for Foo and Foo3, but not Foo2
+        testconfig.add_entry(("Foo", u8::MAX)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        testconfig.delete().unwrap();
+
+        assert!(config.has_key("Foo"));
+
+        // Test works for Foo
+        let vals = config.get(MiscTestsEnum::Foo);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        let f = vals.iter().any(|v| {
+            v.get_u8().is_some()
+        });
+        assert!(f);
+
+        // Test doesnt work for Foo2
+        let vals = config.get(MiscTestsEnum::Foo2);
+        assert!(vals.is_none());
+
+        // Test works for Foo3
+        let vals = config.get(MiscTestsEnum::Foo3);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        let f = vals.iter().any(|v| {
+            v.get_u32().is_some()
+        });
+        assert!(f);
+    }
+
+
+    #[test]
+    fn overlapping_keys_toml_2() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        // This should work for Foo2 only
+        testconfig.add_entry(("Foo", i8::MIN)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        testconfig.delete().unwrap();
+
+        assert!(config.has_key("Foo"));
+
+        // Test doesnt works for Foo
+        let vals = config.get(MiscTestsEnum::Foo);
+        assert!(vals.is_none());
+
+        // Test works for Foo2
+        let vals = config.get(MiscTestsEnum::Foo2);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        let f = vals.iter().any(|v| {
+            v.get_i8().is_some()
+        });
+        assert!(f);
+
+        // Test doesnt works for Foo3
+        let vals = config.get(MiscTestsEnum::Foo3);
+        assert!(vals.is_none());
+    }
+
+    #[test]
+    fn overlapping_keys_toml_3() {
+        let mut testconfig = TestFile::new(TEST_FILE_TYPE).unwrap();
+        // This should work for Foo3, but not Foo or Foo2
+        testconfig.add_entry(("Foo", u32::MAX)).unwrap();
+        let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
+        testconfig.delete().unwrap();
+
+        assert!(config.has_key("Foo"));
+
+        // Test doesnt works for Foo
+        let vals = config.get(MiscTestsEnum::Foo);
+        assert!(vals.is_none());
+
+        // Test doesnt work for Foo2
+        let vals = config.get(MiscTestsEnum::Foo2);
+        assert!(vals.is_none());
+
+        // Test works for Foo3
+        let vals = config.get(MiscTestsEnum::Foo3);
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+        let f = vals.iter().any(|v| {
+            v.get_u32().is_some()
+        });
+        assert!(f);
+    }
+}
 
