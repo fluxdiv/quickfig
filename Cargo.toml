@@ -1,7 +1,20 @@
-# home/user/quickfig/Cargo.toml
+# /quickfig/Cargo.toml
 [workspace]
 resolver = "3"
-members = ["bin_test", "quickfig_core", "quickfig_derive"]
+members = [
+  "bin_test",
+  "quickfig",
+  "quickfig_core",
+  "quickfig_derive",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["fluxdiv <156196590+fluxdiv@users.noreply.github.com>"]
+description = "Quickfig: Replace boilerplate in apps that read from user configuration files"
+license = "MIT"
+repository = "https://github.com/fluxdiv/quickfig"
 
 [workspace.dependencies]
 anyhow = "1.0.98"
@@ -10,4 +23,5 @@ proc-macro2 = "1.0.95"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.142", features = ["arbitrary_precision"] }
 toml = "0.9.5"
-
+quote = "1.0.40"
+dirs = "6.0.0"

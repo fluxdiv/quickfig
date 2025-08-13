@@ -1,15 +1,13 @@
 // testing actual usage of the macro
 #![allow(dead_code, unused)]
 use anyhow::Result;
-use quickfig_core::{
+use quickfig::core::{
     config_types::{ JSON, TOML },
-    // AllowedType,
     AllowedTypeWrapper,
     Config,
-    ConfigFields,
     GetInner,
 };
-use quickfig_derive::ConfigFields as ConfigFieldsMacro;
+use quickfig::derive::ConfigFields;
 use super::utils::*;
 use super::utils::TestFileType as TFT;
 
@@ -25,7 +23,7 @@ use super::utils::TestFileType as TFT;
 // misc_tests_toml   : overlapping keys,
 
 #[allow(non_camel_case_types)]
-#[derive(ConfigFieldsMacro)]
+#[derive(ConfigFields)]
 pub enum TestEnum {
     #[keys("String")]
     #[must_be(String)]
@@ -1984,21 +1982,20 @@ mod must_be_toml {
 #[cfg(test)]
 mod misc_tests_json {
     use anyhow::Result;
-    use quickfig_core::{
+    use quickfig::core::{
         config_types::{ JSON, TOML },
         // AllowedType,
         AllowedTypeWrapper,
         Config,
-        ConfigFields,
         GetInner,
     };
-    use quickfig_derive::ConfigFields as ConfigFieldsMacro;
+    use quickfig::derive::ConfigFields;
     use super::super::utils::*;
     use super::super::utils::TestFileType as TFT;
 
     const TEST_FILE_TYPE: TestFileType = TFT::JSON;
 
-    #[derive(ConfigFieldsMacro)]
+    #[derive(ConfigFields)]
     enum MiscTestsEnum {
         // ----------------------------------------------------
         // Overlapping keys work without regard for each other,
@@ -2115,20 +2112,19 @@ mod misc_tests_json {
 #[cfg(test)]
 mod misc_tests_toml {
     use anyhow::Result;
-    use quickfig_core::{
+    use quickfig::core::{
         config_types::{ JSON, TOML },
         AllowedTypeWrapper,
         Config,
-        ConfigFields,
         GetInner,
     };
-    use quickfig_derive::ConfigFields as ConfigFieldsMacro;
+    use quickfig::derive::ConfigFields;
     use super::super::utils::*;
     use super::super::utils::TestFileType as TFT;
 
     const TEST_FILE_TYPE: TestFileType = TFT::TOML;
 
-    #[derive(ConfigFieldsMacro)]
+    #[derive(ConfigFields)]
     enum MiscTestsEnum {
         // ----------------------------------------------------
         // Overlapping keys work without regard for each other,

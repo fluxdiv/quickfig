@@ -153,7 +153,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                     // only push if some (if parsing was successful)
                     if let Some(at) = self.parse_allowed_type(
                         stringify!(#var_name),
-                        quickfig_core::AllowedType::#at_ident
+                        quickfig::core::AllowedType::#at_ident
                     ) {
                         at_wrappers.push(at);
                     }
@@ -174,7 +174,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                             // only push if some (if parsing was successful)
                             if let Some(at) = self.parse_allowed_type(
                                 #key,
-                                quickfig_core::AllowedType::#at_ident
+                                quickfig::core::AllowedType::#at_ident
                             ) {
                                 at_wrappers.push(at);
                             }
@@ -208,7 +208,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                     // Config file has the key associated with this variant's name
                     println!("key found: {}", stringify!(#var_name));
                     // declare this here, then have each iter loop push to it
-                    let mut at_wrappers: Vec<quickfig_core::ATW> = vec![];
+                    let mut at_wrappers: Vec<quickfig::core::ATW> = vec![];
                     // for each allowed type in list, try to parse &Value
                     // self.parse_allowed_type(at: AllowedType) -> Option<ATWrapper>
                     // in each iteration I push to at_wrappers, but only if some
@@ -226,7 +226,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
         } else {
             // this variants keys wasn't empty, for key in keys do at_action using key instead of #var
             quote!{
-                let mut at_wrappers: Vec<quickfig_core::ATW> = vec![];
+                let mut at_wrappers: Vec<quickfig::core::ATW> = vec![];
 
                 #(#key_actions)*
 
@@ -254,7 +254,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
 
     let impl_gen = quote! {
 
-        impl ConfigFields for #name {
+        impl quickfig::core::ConfigFields for #name {
             fn hello_macro() {
                 println!("Hello, Macro! my name is {}!", stringify!(#name));
                 println!();
@@ -262,14 +262,15 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
         }
 
         trait #trait_ident {
-            type CF: quickfig_core::ConfigFields;
-            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig_core::ATW>>;
+            // type CF: quickfig_core::ConfigFields;
+            type CF: quickfig::core::ConfigFields;
+            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::ATW>>;
         }
 
-        impl #trait_ident for quickfig_core::Config<quickfig_core::config_types::JSON> {
+        impl #trait_ident for quickfig::core::Config<quickfig::core::config_types::JSON> {
             type CF = #name;
 
-            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig_core::ATW>> {
+            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::ATW>> {
                 
                 // Each arm in this match statement returns Option<Vec<ATW>>
                 // and UNLESS they have #[non-exhaustive] on their enum, I dont 
@@ -282,10 +283,10 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
 
-        impl #trait_ident for quickfig_core::Config<quickfig_core::config_types::TOML> {
+        impl #trait_ident for quickfig::core::Config<quickfig::core::config_types::TOML> {
             type CF = #name;
 
-            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig_core::ATW>> {
+            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::ATW>> {
                 
                 match their_enum {
                     #(#match_arms)*,

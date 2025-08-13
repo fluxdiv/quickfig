@@ -1,10 +1,8 @@
 use anyhow::Result;
-use quickfig_core::{
+use quickfig::core::{
     config_types::{ JSON, TOML },
-    // AllowedType,
     AllowedTypeWrapper,
     Config,
-    ConfigFields,
     GetInner,
 };
 

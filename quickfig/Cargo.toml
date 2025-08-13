@@ -1,0 +1,20 @@
+# quickfig/quickfig/Cargo.toml (thin crate / re-exports)
+[package]
+name = "quickfig"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+quickfig_core = { path = "../quickfig_core" }
+quickfig_derive = { path = "../quickfig_derive", optional = true }
+
+[features]
+# do not include quickfig_derive by default
+default = []
+# derive is the feature name, used via `features = ["derive"]`
+# brackets include the dependencies that get compiled if feature is enabled
+derive = ["quickfig_derive"]

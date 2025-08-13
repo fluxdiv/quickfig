@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use config_types::DeserializedConfig;
 use serde::de::DeserializeOwned;
 use anyhow::{Result, anyhow};

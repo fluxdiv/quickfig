@@ -1,67 +1,9 @@
-#![allow(dead_code, unused)]
 use anyhow::Result;
-use quickfig_core::{
-    config_types::{ JSON, TOML },
-    // AllowedType,
-    AllowedTypeWrapper,
-    Config,
-    ConfigFields,
-    GetInner,
-};
-use quickfig_derive::ConfigFields as ConfigFieldsMacro;
+use quickfig::derive::ConfigFields;
+
 mod config_tests;
 mod usage_tests;
 mod utils;
-
-// #[derive(ConfigFieldsMacro)]
-// enum MyConfigFields {
-//     // // if keys() not provided, default is simply the case sensitive variant name
-//     // // if keys has overlap with another keys definition, it will be returned
-//     // //    for both
-//
-//     // no keys + must_be
-//     #[must_be(u32)]
-//     A,
-//     // keys overlaps with no keys default
-//     #[keys("A")]
-//     #[must_be(u32)]
-//     A2,
-//
-//     // no keys + any_of
-//     #[any_of(String, u32)]
-//     B,
-//     // keys overlaps with no keys default
-//     #[keys("B")]
-//     #[any_of(String, u32)]
-//     B2,
-//
-//     // keys + must_be
-//     #[keys("sirname", "nickname")]
-//     #[must_be(String)]
-//     Name,
-//     // overlapping keys, same must_be type
-//     #[keys("sirname", "foo")]
-//     #[must_be(String)]
-//     Name2,
-//     // overlapping keys, different must_be type
-//     #[keys("sirname", "foo")]
-//     #[must_be(u32)]
-//     Name3,
-//
-//     // keys + any_of
-//     #[keys("young", "old")]
-//     #[any_of(String, u32)]
-//     Age,
-//     // overlapping keys, same any_of type
-//     #[keys("young", "old")]
-//     #[any_of(String, u32)]
-//     Age2,
-//     // overlapping keys, different any_of type
-//     #[keys("young", "old")]
-//     #[any_of(u8, bool)]
-//     Age3,
-// }
-
 
 fn main() -> Result<()> {
     println!("Hello, world!");
