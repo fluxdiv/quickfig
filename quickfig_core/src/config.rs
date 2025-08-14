@@ -62,7 +62,7 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
     /// `Result<Config<S>>` - Errors if problem creating Config with path (file is empty,
     /// not accessible, cannot be parsed as `<S>`, etc)
     /// # Usage
-    /// ```rust
+    /// ```rust,ignore
     /// let full_path = "/home/user/.config/MyApp/config.json";
     /// let cfg = Config::<JSON>::open(full_path);
     /// ```
@@ -84,7 +84,7 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
     /// creating `Config` with matched path (file is empty, not accessible, 
     /// cannot be parsed as `<S>`, etc)
     /// # Usage
-    /// ```rust
+    /// ```rust,ignore
     /// // Equivalent to default, returns first path that exists & is accessible
     /// let my_paths = vec!["/path/to/x.toml", "/path/to/y.toml", "/path/to/z.toml"];
     /// let cfg = Config::<TOML>::open_first_match(

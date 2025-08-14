@@ -1,8 +1,15 @@
 # /quickfig/Cargo.toml
 [workspace]
 resolver = "3"
+# cargo test --workspace to test all members including bin_test
 members = [
   "bin_test",
+  "quickfig",
+  "quickfig_core",
+  "quickfig_derive",
+]
+# default (without --workspace) excludes bin_test
+default-members = [
   "quickfig",
   "quickfig_core",
   "quickfig_derive",
@@ -15,6 +22,7 @@ authors = ["fluxdiv <156196590+fluxdiv@users.noreply.github.com>"]
 description = "Quickfig: Replace boilerplate in apps that read from user configuration files"
 license = "MIT"
 repository = "https://github.com/fluxdiv/quickfig"
+# exclude = ["bin_test", "bin_test/**"]
 
 [workspace.dependencies]
 anyhow = "1.0.98"
