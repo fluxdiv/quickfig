@@ -1,58 +1,51 @@
-use std::char;
-// use serde::de::DeserializeOwned;
 // use anyhow::{Result, anyhow};
 use syn::{GenericArgument, Type, TypePath, PathArguments};
-// use crate::config::config_types::{DeserializedConfig, JSON};
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone)]
-pub enum AllowedType {
+pub enum AllowedTypeMarker {
     String,
     Char,
     U8,U16,U32,U64,U128,
     I8,I16,I32,I64,I128,
     Bool,
     F32,F64,
-    Vec(Box<AllowedType>),
+    Vec(Box<AllowedTypeMarker>),
 }
 
 #[allow(non_camel_case_types)]
 #[derive(Debug)]
-pub enum AllowedTypeWrapper {
+pub enum AllowedType {
     String(String),
     Char(char),
     U8(u8), U16(u16), U32(u32), U64(u64), U128(u128),
     I8(i8), I16(i16), I32(i32), I64(i64), I128(i128),
     Bool(bool),
     F32(f32), F64(f64),
-    Vec(Box<AllowedTypeWrapper>),
+    Vec(Box<AllowedType>),
 }
 
-/// Re-export for brevity in proc-macro interpolation code
-pub type AT = AllowedType;
-pub type ATW = AllowedTypeWrapper;
-
-impl AllowedType {
+impl AllowedTypeMarker {
     pub fn from_type_path(type_path: &TypePath) -> Option<Self> {
         let segment = &type_path.path.segments.last().unwrap();
         let type_name = segment.ident.to_string();
 
         match type_name.as_str() {
-            "String" => Some(AllowedType::String),
-            "char" => Some(AllowedType::Char),
-            "u8" => Some(AllowedType::U8),
-            "u16" => Some(AllowedType::U16),
-            "u32" => Some(AllowedType::U32),
-            "u64" => Some(AllowedType::U64),
-            "u128" => Some(AllowedType::U128),
-            "i8" => Some(AllowedType::I8),
-            "i16" => Some(AllowedType::I16),
-            "i32" => Some(AllowedType::I32),
-            "i64" => Some(AllowedType::I64),
-            "i128" => Some(AllowedType::I128),
-            "bool" => Some(AllowedType::Bool),
-            "f32" => Some(AllowedType::F32),
-            "f64" => Some(AllowedType::F64),
+            "String" => Some(AllowedTypeMarker::String),
+            "char" => Some(AllowedTypeMarker::Char),
+            "u8" => Some(AllowedTypeMarker::U8),
+            "u16" => Some(AllowedTypeMarker::U16),
+            "u32" => Some(AllowedTypeMarker::U32),
+            "u64" => Some(AllowedTypeMarker::U64),
+            "u128" => Some(AllowedTypeMarker::U128),
+            "i8" => Some(AllowedTypeMarker::I8),
+            "i16" => Some(AllowedTypeMarker::I16),
+            "i32" => Some(AllowedTypeMarker::I32),
+            "i64" => Some(AllowedTypeMarker::I64),
+            "i128" => Some(AllowedTypeMarker::I128),
+            "bool" => Some(AllowedTypeMarker::Bool),
+            "f32" => Some(AllowedTypeMarker::F32),
+            "f64" => Some(AllowedTypeMarker::F64),
             "Vec" => {
                 // println!();
                 // println!("segment for vec");
@@ -63,15 +56,15 @@ impl AllowedType {
                 // println!();
                 if let PathArguments::AngleBracketed(args) = &segment.arguments {
                     if let Some(GenericArgument::Type(Type::Path(inner_path))) = args.args.first() {
-                        let inner = AllowedType::from_type_path(inner_path)?;
-                        println!("returning allowed type vec");
-                        Some(AllowedType::Vec(Box::new(inner)))
+                        let inner = AllowedTypeMarker::from_type_path(inner_path)?;
+                        // println!("returning allowed type vec");
+                        Some(AllowedTypeMarker::Vec(Box::new(inner)))
                     } else {
-                        println!("returning NONE instead of allowed type vec A");
+                        // println!("returning NONE instead of allowed type vec A");
                         None
                     }
                 } else {
-                    println!("returning NONE instead of allowed type vec B");
+                    // println!("returning NONE instead of allowed type vec B");
                     None
                 }
             },
@@ -81,21 +74,21 @@ impl AllowedType {
 
     // pub fn from_str(s: &str) -> Option<Self> {
     //     match s.trim() {
-    //         "String" => Some(AllowedType::String),
-    //         "char" => Some(AllowedType::Char),
-    //         "u8" => Some(AllowedType::U8),
-    //         "u16" => Some(AllowedType::U16),
-    //         "u32" => Some(AllowedType::U32),
-    //         "u64" => Some(AllowedType::U64),
-    //         "u128" => Some(AllowedType::U128),
-    //         "i8" => Some(AllowedType::I8),
-    //         "i16" => Some(AllowedType::I16),
-    //         "i32" => Some(AllowedType::I32),
-    //         "i64" => Some(AllowedType::I64),
-    //         "i128" => Some(AllowedType::I128),
-    //         "bool" => Some(AllowedType::Bool),
-    //         "f32" => Some(AllowedType::F32),
-    //         "f64" => Some(AllowedType::F64),
+    //         "String" => Some(AllowedTypeMarker::String),
+    //         "char" => Some(AllowedTypeMarker::Char),
+    //         "u8" => Some(AllowedTypeMarker::U8),
+    //         "u16" => Some(AllowedTypeMarker::U16),
+    //         "u32" => Some(AllowedTypeMarker::U32),
+    //         "u64" => Some(AllowedTypeMarker::U64),
+    //         "u128" => Some(AllowedTypeMarker::U128),
+    //         "i8" => Some(AllowedTypeMarker::I8),
+    //         "i16" => Some(AllowedTypeMarker::I16),
+    //         "i32" => Some(AllowedTypeMarker::I32),
+    //         "i64" => Some(AllowedTypeMarker::I64),
+    //         "i128" => Some(AllowedTypeMarker::I128),
+    //         "bool" => Some(AllowedTypeMarker::Bool),
+    //         "f32" => Some(AllowedTypeMarker::F32),
+    //         "f64" => Some(AllowedTypeMarker::F64),
     //
     //         // "Vec" => {
     //         //
@@ -103,7 +96,7 @@ impl AllowedType {
     //
     //         _ if s.starts_with("Vec<") && s.ends_with('>') => {
     //             let inner = &s[4..s.len() - 1];
-    //             AllowedType::from_str(inner).map(|inner_ty| AllowedType::Vec(Box::new(inner_ty)))
+    //             AllowedTypeMarker::from_str(inner).map(|inner_ty| AllowedType::Vec(Box::new(inner_ty)))
     //         }
     //         _ => None,
     //     }
@@ -128,7 +121,7 @@ pub trait GetInner {
     fn get_f64(&self) -> Option<f64>;
 }
 
-impl GetInner for AllowedTypeWrapper {
+impl GetInner for AllowedType {
     fn get_string(&self) -> Option<String> {
         match self {
             Self::String(x) => Some(x.clone()),

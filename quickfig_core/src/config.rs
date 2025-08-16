@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use config_types::DeserializedConfig;
 use serde::de::DeserializeOwned;
 use anyhow::{Result, anyhow};
-use crate::allowed_type::{AllowedType, AllowedTypeWrapper};
+use crate::allowed_type::{AllowedTypeMarker, AllowedType};
 
 /// Wrapper around deserialized config file
 pub struct Config<S>(S)
@@ -19,8 +19,8 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
     pub fn parse_allowed_type(
         &self,
         key: &str,
-        at: AllowedType
-    ) -> Option<AllowedTypeWrapper> {
+        at: AllowedTypeMarker
+    ) -> Option<AllowedType> {
         let inner = &self.0;
         inner.parse_allowed_type(key, at)
     }
@@ -54,23 +54,33 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
         }
     }
 
-    // TODO - Test from user
-    /// Opens and returns `Config<T>`
+    /// Opens and returns `Config<S>`
     /// # Arguments
     /// `path` - **Full** path to file, `dirs` crate can help getting this
     /// # Returns
-    /// `Result<Config<S>>` - Errors if problem creating Config with path (file is empty,
-    /// not accessible, cannot be parsed as `<S>`, etc)
+    /// `Result<Config<S>>`
+    /// # Errors
+    /// * If file at `path` is empty or non-existent
+    /// * If file at `path` cannot be accessed (permissions, etc)
+    /// * If file at `path` cannot be deserialized
+    /// * If `path` itself is not valid UTF-8
+    /// * If `path` itself does not have extension of `.json` or `.toml`
     /// # Usage
     /// ```rust,ignore
+    /// # use std::error::Error;
+    /// use quickfig::core::Config;
+    /// use quickfig::core::config_types::JSON;
+    ///
+    /// # fn main() -> Result<(), Box<dyn Error>> {
     /// let full_path = "/home/user/.config/MyApp/config.json";
-    /// let cfg = Config::<JSON>::open(full_path);
+    /// let cfg = Config::<JSON>::open(full_path)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn open(path: impl AsRef<std::path::Path>) -> Result<Config<S>> {
         Config::<S>::new_from_file(path)
     }
 
-    // TODO - Test from user 
     /// Opens and returns `Config<S>` of the first path in `paths` where
     /// `search` returns `Some(path)`.
     ///
@@ -130,7 +140,7 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
 
 // Re-exports
 pub mod config_types {
-    use crate::{AllowedType, AllowedTypeWrapper};
+    use crate::{AllowedTypeMarker, AllowedType};
 
     pub type JSON = serde_json::Value;
     pub type TOML = toml::Value;
@@ -141,7 +151,7 @@ pub mod config_types {
         fn get_at_idx(&self, idx: usize) -> Option<&Self>;
         fn as_str(&self) -> Option<&str>;
         fn has_key(&self, key: &str) -> bool;
-        fn parse_allowed_type(&self, key: &str, at: AllowedType) -> Option<AllowedTypeWrapper>;
+        fn parse_allowed_type(&self, key: &str, at: AllowedTypeMarker) -> Option<AllowedType>;
     }
 
     impl DeserializedConfig for JSON {
@@ -160,90 +170,90 @@ pub mod config_types {
         fn parse_allowed_type(
             &self,
             key: &str,
-            at: AllowedType
-        ) -> Option<AllowedTypeWrapper> {
+            at: AllowedTypeMarker
+        ) -> Option<AllowedType> {
             // this is called with a key (defined on user's enum variant via `keys()` or variant name itself)
             // and allowed type (defined on user's enum variant via `must_be()` or `any_of()`
             let v = self.get(key)?;
 
             match at {
-                AllowedType::String => {
+                AllowedTypeMarker::String => {
                     v.as_str()
-                        .map(|s| AllowedTypeWrapper::String(s.to_string()))
+                        .map(|s| AllowedType::String(s.to_string()))
                 },
-                AllowedType::Char => {
+                AllowedTypeMarker::Char => {
                     v.as_str()
                         .and_then(|s| s.chars().next())
-                        .map(|c| AllowedTypeWrapper::Char(c))
+                        .map(|c| AllowedType::Char(c))
                 },
-                AllowedType::U8 => {
+                AllowedTypeMarker::U8 => {
                     v.as_u64()
                         .and_then(|n| u8::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::U8(u))
+                        .map(|u| AllowedType::U8(u))
                 }
-                AllowedType::U16 => {
+                AllowedTypeMarker::U16 => {
                     v.as_u64()
                         .and_then(|n| u16::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::U16(u))
+                        .map(|u| AllowedType::U16(u))
                 },
-                AllowedType::U32 => {
+                AllowedTypeMarker::U32 => {
                     v.as_u64()
                         .and_then(|n| u32::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::U32(u))
+                        .map(|u| AllowedType::U32(u))
                 },
-                AllowedType::U64 => {
+                AllowedTypeMarker::U64 => {
                     v.as_u64()
-                        .map(|u| AllowedTypeWrapper::U64(u))
+                        .map(|u| AllowedType::U64(u))
                 },
-                AllowedType::U128 => {
+                AllowedTypeMarker::U128 => {
                     v.as_number()
                         .and_then(|num| {
                             num.as_u128()
                         })
                         .map(|n| {
-                            AllowedTypeWrapper::U128(n)
+                            AllowedType::U128(n)
                         })
                 },
-                AllowedType::I8 => {
+                AllowedTypeMarker::I8 => {
                     v.as_i64()
                         .and_then(|n| i8::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::I8(u))
+                        .map(|u| AllowedType::I8(u))
                 }
-                AllowedType::I16 => {
+                AllowedTypeMarker::I16 => {
                     v.as_i64()
                         .and_then(|n| i16::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::I16(u))
+                        .map(|u| AllowedType::I16(u))
                 },
-                AllowedType::I32 => {
+                AllowedTypeMarker::I32 => {
                     v.as_i64()
                         .and_then(|n| i32::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::I32(u))
+                        .map(|u| AllowedType::I32(u))
                 },
-                AllowedType::I64 => {
+                AllowedTypeMarker::I64 => {
                     v.as_i64()
-                        .map(|u| AllowedTypeWrapper::I64(u))
+                        .map(|u| AllowedType::I64(u))
                 },
-                AllowedType::I128 => {
+                AllowedTypeMarker::I128 => {
                     v.as_number()
                         .and_then(|num| {
                             num.as_i128()
                         })
                         .map(|n| {
-                            AllowedTypeWrapper::I128(n)
+                            AllowedType::I128(n)
                         })
                 },
-                AllowedType::F32 => {
+                AllowedTypeMarker::F32 => {
                     v.as_f64()
-                        .map(|f| AllowedTypeWrapper::F32(f as f32))
+                        .map(|f| AllowedType::F32(f as f32))
                 },
-                AllowedType::F64 => {
+                AllowedTypeMarker::F64 => {
                     v.as_f64()
-                        .map(|f| AllowedTypeWrapper::F64(f))
+                        .map(|f| AllowedType::F64(f))
                 },
-                AllowedType::Bool => {
-                    v.as_bool().map(|b| AllowedTypeWrapper::Bool(b))
+                AllowedTypeMarker::Bool => {
+                    v.as_bool().map(|b| AllowedType::Bool(b))
                 },
-                // AllowedType::Vec(ref inner_at) => {
+                // AllowedTypeMarker::Vec(ref inner_at) => {
                 //     let arr = v.as_array()?;
                 //     let mut parsed = vec![];
                 //     for val in arr {
@@ -254,10 +264,10 @@ pub mod config_types {
                 //     parsed.into_iter()
                 //         .rev()
                 //         .reduce(|acc, x| {
-                //             AllowedTypeWrapper::Vec(Box::new(x))
+                //             AllowedType::Vec(Box::new(x))
                 //         })
                 //         .map(|y| Box::new(y))
-                //         .map(|z| AllowedTypeWrapper::Vec(z))
+                //         .map(|z| AllowedType::Vec(z))
                 // }
                 _ => unreachable!()
             }
@@ -281,82 +291,82 @@ pub mod config_types {
         fn parse_allowed_type(
             &self,
             key: &str,
-            at: AllowedType
-        ) -> Option<AllowedTypeWrapper> {
+            at: AllowedTypeMarker
+        ) -> Option<AllowedType> {
             let v = self.get(key)?;
 
             match at {
-                AllowedType::String => {
+                AllowedTypeMarker::String => {
                     v.as_str()
-                        .map(|s| AllowedTypeWrapper::String(s.to_string()))
+                        .map(|s| AllowedType::String(s.to_string()))
                 },
-                AllowedType::Char => {
+                AllowedTypeMarker::Char => {
                     v.as_str()
                         .and_then(|s| s.chars().next())
-                        .map(|c| AllowedTypeWrapper::Char(c))
+                        .map(|c| AllowedType::Char(c))
                 },
-                AllowedType::U8 => {
+                AllowedTypeMarker::U8 => {
 
                     v.as_integer()
                         .and_then(|n| u8::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::U8(u))
+                        .map(|u| AllowedType::U8(u))
                 }
-                AllowedType::U16 => {
+                AllowedTypeMarker::U16 => {
                     v.as_integer()
                         .and_then(|n| u16::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::U16(u))
+                        .map(|u| AllowedType::U16(u))
                 },
-                AllowedType::U32 => {
+                AllowedTypeMarker::U32 => {
                     v.as_integer()
                         .and_then(|n| u32::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::U32(u))
+                        .map(|u| AllowedType::U32(u))
                 },
-                AllowedType::U64 => {
+                AllowedTypeMarker::U64 => {
                     v.as_integer()
                         .and_then(|n| u64::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::U64(u))
+                        .map(|u| AllowedType::U64(u))
                 },
-                AllowedType::U128 => {
+                AllowedTypeMarker::U128 => {
                     v.as_integer()
                         .and_then(|n| u64::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::U128(u.into()))
+                        .map(|u| AllowedType::U128(u.into()))
                 },
-                AllowedType::I8 => {
+                AllowedTypeMarker::I8 => {
                     v.as_integer()
                         .and_then(|n| i8::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::I8(u))
+                        .map(|u| AllowedType::I8(u))
                 }
-                AllowedType::I16 => {
+                AllowedTypeMarker::I16 => {
                     v.as_integer()
                         .and_then(|n| i16::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::I16(u))
+                        .map(|u| AllowedType::I16(u))
                 },
-                AllowedType::I32 => {
+                AllowedTypeMarker::I32 => {
                     v.as_integer()
                         .and_then(|n| i32::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::I32(u))
+                        .map(|u| AllowedType::I32(u))
                 },
-                AllowedType::I64 => {
+                AllowedTypeMarker::I64 => {
                     v.as_integer()
-                        .map(|u| AllowedTypeWrapper::I64(u))
+                        .map(|u| AllowedType::I64(u))
                 },
-                AllowedType::I128 => {
+                AllowedTypeMarker::I128 => {
                     v.as_integer()
                         .and_then(|n| u64::try_from(n).ok())
-                        .map(|u| AllowedTypeWrapper::I128(u.into()))
+                        .map(|u| AllowedType::I128(u.into()))
                 },
-                AllowedType::F32 => {
+                AllowedTypeMarker::F32 => {
                     v.as_float()
-                        .map(|f| AllowedTypeWrapper::F32(f as f32))
+                        .map(|f| AllowedType::F32(f as f32))
                 },
-                AllowedType::F64 => {
+                AllowedTypeMarker::F64 => {
                     v.as_float()
-                        .map(|f| AllowedTypeWrapper::F64(f))
+                        .map(|f| AllowedType::F64(f))
                 },
-                AllowedType::Bool => {
-                    v.as_bool().map(|b| AllowedTypeWrapper::Bool(b))
+                AllowedTypeMarker::Bool => {
+                    v.as_bool().map(|b| AllowedType::Bool(b))
                 },
-                // AllowedType::Vec(ref inner_at) => {
+                // AllowedTypeMarker::Vec(ref inner_at) => {
                 //     let arr = v.as_array()?;
                 //     let mut parsed = vec![];
                 //     for val in arr {
@@ -367,10 +377,10 @@ pub mod config_types {
                 //     parsed.into_iter()
                 //         .rev()
                 //         .reduce(|acc, x| {
-                //             AllowedTypeWrapper::Vec(Box::new(x))
+                //             AllowedType::Vec(Box::new(x))
                 //         })
                 //         .map(|y| Box::new(y))
-                //         .map(|z| AllowedTypeWrapper::Vec(z))
+                //         .map(|z| AllowedType::Vec(z))
                 // }
                 _ => unreachable!()
             }
