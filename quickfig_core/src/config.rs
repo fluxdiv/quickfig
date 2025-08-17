@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use config_types::DeserializedConfig;
 use serde::de::DeserializeOwned;
 use anyhow::{Result, anyhow};
-use crate::allowed_type::{AllowedTypeMarker, AllowedType};
+use crate::field::{FieldMarker, Field};
 
 /// Wrapper around deserialized config file
 pub struct Config<S>(S)
@@ -19,8 +19,8 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
     pub fn parse_allowed_type(
         &self,
         key: &str,
-        at: AllowedTypeMarker
-    ) -> Option<AllowedType> {
+        at: FieldMarker
+    ) -> Option<Field> {
         let inner = &self.0;
         inner.parse_allowed_type(key, at)
     }
@@ -140,7 +140,7 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
 
 // Re-exports
 pub mod config_types {
-    use crate::{AllowedTypeMarker, AllowedType};
+    use crate::{FieldMarker, Field};
 
     pub type JSON = serde_json::Value;
     pub type TOML = toml::Value;
@@ -151,7 +151,7 @@ pub mod config_types {
         fn get_at_idx(&self, idx: usize) -> Option<&Self>;
         fn as_str(&self) -> Option<&str>;
         fn has_key(&self, key: &str) -> bool;
-        fn parse_allowed_type(&self, key: &str, at: AllowedTypeMarker) -> Option<AllowedType>;
+        fn parse_allowed_type(&self, key: &str, at: FieldMarker) -> Option<Field>;
     }
 
     impl DeserializedConfig for JSON {
@@ -170,107 +170,229 @@ pub mod config_types {
         fn parse_allowed_type(
             &self,
             key: &str,
-            at: AllowedTypeMarker
-        ) -> Option<AllowedType> {
+            at: FieldMarker
+        ) -> Option<Field> {
             // this is called with a key (defined on user's enum variant via `keys()` or variant name itself)
             // and allowed type (defined on user's enum variant via `must_be()` or `any_of()`
             let v = self.get(key)?;
 
             match at {
-                AllowedTypeMarker::String => {
+                FieldMarker::String => {
                     v.as_str()
-                        .map(|s| AllowedType::String(s.to_string()))
+                        .map(|s| Field::String {
+                            key: key.to_string(),
+                            value: s.to_string(),
+                        })
                 },
-                AllowedTypeMarker::Char => {
+                FieldMarker::Char => {
                     v.as_str()
                         .and_then(|s| s.chars().next())
-                        .map(|c| AllowedType::Char(c))
+                        .map(|c| Field::Char {
+                            key: key.to_string(),
+                            value: c,
+                        })
                 },
-                AllowedTypeMarker::U8 => {
+                FieldMarker::U8 => {
                     v.as_u64()
                         .and_then(|n| u8::try_from(n).ok())
-                        .map(|u| AllowedType::U8(u))
-                }
-                AllowedTypeMarker::U16 => {
+                        .map(|u| Field::U8 {
+                            key: key.to_string(),
+                            value: u,
+                        })
+                },
+                FieldMarker::U16 => {
                     v.as_u64()
                         .and_then(|n| u16::try_from(n).ok())
-                        .map(|u| AllowedType::U16(u))
+                        .map(|u| Field::U16 {
+                            key: key.to_string(),
+                            value: u,
+                        })
                 },
-                AllowedTypeMarker::U32 => {
+                FieldMarker::U32 => {
                     v.as_u64()
                         .and_then(|n| u32::try_from(n).ok())
-                        .map(|u| AllowedType::U32(u))
+                        .map(|u| Field::U32 {
+                            key: key.to_string(),
+                            value: u,
+                        })
                 },
-                AllowedTypeMarker::U64 => {
+                FieldMarker::U64 => {
                     v.as_u64()
-                        .map(|u| AllowedType::U64(u))
+                        .map(|u| Field::U64 {
+                            key: key.to_string(),
+                            value: u,
+                        })
                 },
-                AllowedTypeMarker::U128 => {
+                FieldMarker::U128 => {
                     v.as_number()
-                        .and_then(|num| {
-                            num.as_u128()
-                        })
-                        .map(|n| {
-                            AllowedType::U128(n)
+                        .and_then(|num| num.as_u128())
+                        .map(|n| Field::U128 {
+                            key: key.to_string(),
+                            value: n,
                         })
                 },
-                AllowedTypeMarker::I8 => {
+                FieldMarker::I8 => {
                     v.as_i64()
                         .and_then(|n| i8::try_from(n).ok())
-                        .map(|u| AllowedType::I8(u))
-                }
-                AllowedTypeMarker::I16 => {
+                        .map(|i| Field::I8 {
+                            key: key.to_string(),
+                            value: i,
+                        })
+                },
+                FieldMarker::I16 => {
                     v.as_i64()
                         .and_then(|n| i16::try_from(n).ok())
-                        .map(|u| AllowedType::I16(u))
+                        .map(|i| Field::I16 {
+                            key: key.to_string(),
+                            value: i,
+                        })
                 },
-                AllowedTypeMarker::I32 => {
+                FieldMarker::I32 => {
                     v.as_i64()
                         .and_then(|n| i32::try_from(n).ok())
-                        .map(|u| AllowedType::I32(u))
+                        .map(|i| Field::I32 {
+                            key: key.to_string(),
+                            value: i,
+                        })
                 },
-                AllowedTypeMarker::I64 => {
+                FieldMarker::I64 => {
                     v.as_i64()
-                        .map(|u| AllowedType::I64(u))
+                        .map(|i| Field::I64 {
+                            key: key.to_string(),
+                            value: i,
+                        })
                 },
-                AllowedTypeMarker::I128 => {
+                FieldMarker::I128 => {
                     v.as_number()
-                        .and_then(|num| {
-                            num.as_i128()
+                        .and_then(|num| num.as_i128())
+                        .map(|n| Field::I128 {
+                            key: key.to_string(),
+                            value: n,
                         })
-                        .map(|n| {
-                            AllowedType::I128(n)
+                },
+                FieldMarker::F32 => {
+                    v.as_f64()
+                        .map(|f| Field::F32 {
+                            key: key.to_string(),
+                            value: f as f32,
                         })
                 },
-                AllowedTypeMarker::F32 => {
+                FieldMarker::F64 => {
                     v.as_f64()
-                        .map(|f| AllowedType::F32(f as f32))
+                        .map(|f| Field::F64 {
+                            key: key.to_string(),
+                            value: f,
+                        })
                 },
-                AllowedTypeMarker::F64 => {
-                    v.as_f64()
-                        .map(|f| AllowedType::F64(f))
+                FieldMarker::Bool => {
+                    v.as_bool()
+                        .map(|b| Field::Bool {
+                            key: key.to_string(),
+                            value: b,
+                        })
                 },
-                AllowedTypeMarker::Bool => {
-                    v.as_bool().map(|b| AllowedType::Bool(b))
-                },
-                // AllowedTypeMarker::Vec(ref inner_at) => {
-                //     let arr = v.as_array()?;
-                //     let mut parsed = vec![];
-                //     for val in arr {
-                //         let inner_wrapper = self.parse_allowed_type(key, at.clone())?;
-                //         parsed.push(inner_wrapper);
-                //     }
-                //     // wrap recursively
-                //     parsed.into_iter()
-                //         .rev()
-                //         .reduce(|acc, x| {
-                //             AllowedType::Vec(Box::new(x))
-                //         })
-                //         .map(|y| Box::new(y))
-                //         .map(|z| AllowedType::Vec(z))
-                // }
                 _ => unreachable!()
             }
+
+            //
+            // match at {
+            //     FieldMarker::String => {
+            //         v.as_str()
+            //             .map(|s| Field::String {
+            //                 key: key.to_string(),
+            //                 value: s.to_string()
+            //             })
+            //     },
+            //     FieldMarker::Char => {
+            //         v.as_str()
+            //             .and_then(|s| s.chars().next())
+            //             .map(|c| Field::Char(c))
+            //     },
+            //     FieldMarker::U8 => {
+            //         v.as_u64()
+            //             .and_then(|n| u8::try_from(n).ok())
+            //             .map(|u| Field::U8(u))
+            //     }
+            //     FieldMarker::U16 => {
+            //         v.as_u64()
+            //             .and_then(|n| u16::try_from(n).ok())
+            //             .map(|u| Field::U16(u))
+            //     },
+            //     FieldMarker::U32 => {
+            //         v.as_u64()
+            //             .and_then(|n| u32::try_from(n).ok())
+            //             .map(|u| Field::U32(u))
+            //     },
+            //     FieldMarker::U64 => {
+            //         v.as_u64()
+            //             .map(|u| Field::U64(u))
+            //     },
+            //     FieldMarker::U128 => {
+            //         v.as_number()
+            //             .and_then(|num| {
+            //                 num.as_u128()
+            //             })
+            //             .map(|n| {
+            //                 Field::U128(n)
+            //             })
+            //     },
+            //     FieldMarker::I8 => {
+            //         v.as_i64()
+            //             .and_then(|n| i8::try_from(n).ok())
+            //             .map(|u| Field::I8(u))
+            //     }
+            //     FieldMarker::I16 => {
+            //         v.as_i64()
+            //             .and_then(|n| i16::try_from(n).ok())
+            //             .map(|u| Field::I16(u))
+            //     },
+            //     FieldMarker::I32 => {
+            //         v.as_i64()
+            //             .and_then(|n| i32::try_from(n).ok())
+            //             .map(|u| Field::I32(u))
+            //     },
+            //     FieldMarker::I64 => {
+            //         v.as_i64()
+            //             .map(|u| Field::I64(u))
+            //     },
+            //     FieldMarker::I128 => {
+            //         v.as_number()
+            //             .and_then(|num| {
+            //                 num.as_i128()
+            //             })
+            //             .map(|n| {
+            //                 Field::I128(n)
+            //             })
+            //     },
+            //     FieldMarker::F32 => {
+            //         v.as_f64()
+            //             .map(|f| Field::F32(f as f32))
+            //     },
+            //     FieldMarker::F64 => {
+            //         v.as_f64()
+            //             .map(|f| Field::F64(f))
+            //     },
+            //     FieldMarker::Bool => {
+            //         v.as_bool().map(|b| Field::Bool(b))
+            //     },
+            //     // FieldMarker::Vec(ref inner_at) => {
+            //     //     let arr = v.as_array()?;
+            //     //     let mut parsed = vec![];
+            //     //     for val in arr {
+            //     //         let inner_wrapper = self.parse_allowed_type(key, at.clone())?;
+            //     //         parsed.push(inner_wrapper);
+            //     //     }
+            //     //     // wrap recursively
+            //     //     parsed.into_iter()
+            //     //         .rev()
+            //     //         .reduce(|acc, x| {
+            //     //             Field::Vec(Box::new(x))
+            //     //         })
+            //     //         .map(|y| Box::new(y))
+            //     //         .map(|z| Field::Vec(z))
+            //     // }
+            //     _ => unreachable!()
+            // }
             // None
         }
     }
@@ -291,99 +413,130 @@ pub mod config_types {
         fn parse_allowed_type(
             &self,
             key: &str,
-            at: AllowedTypeMarker
-        ) -> Option<AllowedType> {
+            at: FieldMarker
+        ) -> Option<Field> {
+
             let v = self.get(key)?;
 
             match at {
-                AllowedTypeMarker::String => {
+                FieldMarker::String => {
                     v.as_str()
-                        .map(|s| AllowedType::String(s.to_string()))
+                        .map(|s| Field::String {
+                            key: key.to_string(),
+                            value: s.to_string(),
+                        })
                 },
-                AllowedTypeMarker::Char => {
+                FieldMarker::Char => {
                     v.as_str()
                         .and_then(|s| s.chars().next())
-                        .map(|c| AllowedType::Char(c))
+                        .map(|c| Field::Char {
+                            key: key.to_string(),
+                            value: c,
+                        })
                 },
-                AllowedTypeMarker::U8 => {
-
+                FieldMarker::U8 => {
                     v.as_integer()
                         .and_then(|n| u8::try_from(n).ok())
-                        .map(|u| AllowedType::U8(u))
-                }
-                AllowedTypeMarker::U16 => {
+                        .map(|u| Field::U8 {
+                            key: key.to_string(),
+                            value: u,
+                        })
+                },
+                FieldMarker::U16 => {
                     v.as_integer()
                         .and_then(|n| u16::try_from(n).ok())
-                        .map(|u| AllowedType::U16(u))
+                        .map(|u| Field::U16 {
+                            key: key.to_string(),
+                            value: u,
+                        })
                 },
-                AllowedTypeMarker::U32 => {
+                FieldMarker::U32 => {
                     v.as_integer()
                         .and_then(|n| u32::try_from(n).ok())
-                        .map(|u| AllowedType::U32(u))
+                        .map(|u| Field::U32 {
+                            key: key.to_string(),
+                            value: u,
+                        })
                 },
-                AllowedTypeMarker::U64 => {
+                FieldMarker::U64 => {
                     v.as_integer()
                         .and_then(|n| u64::try_from(n).ok())
-                        .map(|u| AllowedType::U64(u))
+                        .map(|u| Field::U64 {
+                            key: key.to_string(),
+                            value: u,
+                        })
                 },
-                AllowedTypeMarker::U128 => {
+                FieldMarker::U128 => {
                     v.as_integer()
                         .and_then(|n| u64::try_from(n).ok())
-                        .map(|u| AllowedType::U128(u.into()))
+                        .map(|u| Field::U128 {
+                            key: key.to_string(),
+                            value: u.into(),
+                        })
                 },
-                AllowedTypeMarker::I8 => {
+                FieldMarker::I8 => {
                     v.as_integer()
                         .and_then(|n| i8::try_from(n).ok())
-                        .map(|u| AllowedType::I8(u))
-                }
-                AllowedTypeMarker::I16 => {
+                        .map(|i| Field::I8 {
+                            key: key.to_string(),
+                            value: i,
+                        })
+                },
+                FieldMarker::I16 => {
                     v.as_integer()
                         .and_then(|n| i16::try_from(n).ok())
-                        .map(|u| AllowedType::I16(u))
+                        .map(|i| Field::I16 {
+                            key: key.to_string(),
+                            value: i,
+                        })
                 },
-                AllowedTypeMarker::I32 => {
+                FieldMarker::I32 => {
                     v.as_integer()
                         .and_then(|n| i32::try_from(n).ok())
-                        .map(|u| AllowedType::I32(u))
+                        .map(|i| Field::I32 {
+                            key: key.to_string(),
+                            value: i,
+                        })
                 },
-                AllowedTypeMarker::I64 => {
+                FieldMarker::I64 => {
                     v.as_integer()
-                        .map(|u| AllowedType::I64(u))
+                        .map(|i| Field::I64 {
+                            key: key.to_string(),
+                            value: i,
+                        })
                 },
-                AllowedTypeMarker::I128 => {
+                FieldMarker::I128 => {
                     v.as_integer()
                         .and_then(|n| u64::try_from(n).ok())
-                        .map(|u| AllowedType::I128(u.into()))
+                        .map(|u| Field::I128 {
+                            key: key.to_string(),
+                            value: u.into(),
+                        })
                 },
-                AllowedTypeMarker::F32 => {
+                FieldMarker::F32 => {
                     v.as_float()
-                        .map(|f| AllowedType::F32(f as f32))
+                        .map(|f| Field::F32 {
+                            key: key.to_string(),
+                            value: f as f32,
+                        })
                 },
-                AllowedTypeMarker::F64 => {
+                FieldMarker::F64 => {
                     v.as_float()
-                        .map(|f| AllowedType::F64(f))
+                        .map(|f| Field::F64 {
+                            key: key.to_string(),
+                            value: f,
+                        })
                 },
-                AllowedTypeMarker::Bool => {
-                    v.as_bool().map(|b| AllowedType::Bool(b))
+                FieldMarker::Bool => {
+                    v.as_bool()
+                        .map(|b| Field::Bool {
+                            key: key.to_string(),
+                            value: b,
+                        })
                 },
-                // AllowedTypeMarker::Vec(ref inner_at) => {
-                //     let arr = v.as_array()?;
-                //     let mut parsed = vec![];
-                //     for val in arr {
-                //         let inner_wrapper = self.parse_allowed_type(key, at.clone())?;
-                //         parsed.push(inner_wrapper);
-                //     }
-                //     // wrap recursively
-                //     parsed.into_iter()
-                //         .rev()
-                //         .reduce(|acc, x| {
-                //             AllowedType::Vec(Box::new(x))
-                //         })
-                //         .map(|y| Box::new(y))
-                //         .map(|z| AllowedType::Vec(z))
-                // }
-                _ => unreachable!()
+                _ => unreachable!(),
             }
+
             // None
         }
     }

@@ -23,10 +23,10 @@
 //!
 //! In your project:
 //!
-//! ```rust
+//! ```rust,ignore
 //! use quickfig::derive::ConfigFields;
 //! use quickfig::core::{
-//!     Config, AllowedType,
+//!     Config, Field,
 //!     config_types::JSON
 //! };
 //!
@@ -52,10 +52,10 @@
 //!     // create a "Config" instance
 //!     let config = Config::<JSON>::open("/path/to/users_config.json").unwrap();
 //!     
-//!     let id: Option<Vec<AllowedType>> = config.get(MyFields::Id);
+//!     let id: Option<Vec<Field>> = config.get(MyFields::Id);
 //!     // id would be None if all 3 of the keys were missing ("id", "ID", "Ident")
-//!     // We know that "id" existed though, so unwrap the inner Vec<AllowedType>
-//!     let id_matches: Vec<AllowedType> = id.unwrap();
+//!     // We know that "id" existed though, so unwrap the inner Vec<Field>
+//!     let id_matches: Vec<Field> = id.unwrap();
 //!     // id_matches contains all matched keys where the associated 
 //!     // value was able to be parsed into one of the `any_of` types.
 //!     // In this case, it would have a maximum length of 6.
@@ -64,12 +64,27 @@
 //!     // expect the user's config to contain only 1 matching key per enum variant,
 //!     // and want to throw an error otherwise.
 //!
-//!     // As a helper, `Vec<AllowedType>` has a `.only_one(&self)` method,
-//!     // and `AllowedType` has a `.get_key()` method.
-//!     // Internally, `.only_one()` verifies that all AllowedType have
+//!     // As a helper, `Vec<Field>` has a `.only_one_key()` method,
+//!     // and `Field` has a `.get_key()` method.
+//!     // Internally, `.only_one_key()` verifies that all `Field`s have
 //!     // the same key (using `.get_key()`), and returns an Error otherwise.
+//!     let id_matches: Vec<Field> = id_matches.only_one_key().unwrap();
 //!
-//!     let id_matches: Result<Vec<AllowedType>> = id_matches.only_one();
+//!     // id_matches now contains 1 `Field` for every type in the 
+//!     // `#[any_of(u8, u16)]` annotation that was successfully parsed.
+//!     // Again, you can manually iterate if you want, or you can call
+//!     // additional helper methods implemented for `Vec<Field>`
+//!
+//!     let u8_val: Option<u8> = id_matches.get_u8();
+//!     let u16_val: Option<u16> = id_matches.get_u16();
+//!
+//!     // *NOTE*: The `get_x()` methods on Vec<Field> return the *first* match,
+//!     // by internally iterating and calling `.get_x()` on each `Field`.
+//!     // If you validated with `only_one_key` prior to calling these methods,
+//!     // it is guaranteed there will be only 1 possible return value.
+//!     // If you did not, then a re-ordered Vec<Field> with identical elements
+//!     // may have a different return value.
+//!
 //! }
 //! ```
 //!

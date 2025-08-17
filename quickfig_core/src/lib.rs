@@ -1,8 +1,8 @@
 // #![allow(dead_code, unused)]
 mod config;
-mod allowed_type;
+mod field;
 pub use config::*;
-pub use allowed_type::*;
+pub use field::*;
 
 // quickfig/quickfig_core/lib.rs
 

@@ -3,7 +3,7 @@
 use anyhow::Result;
 use quickfig::core::{
     config_types::{ JSON, TOML },
-    AllowedType,
+    Field,
     Config,
     GetInner,
 };
@@ -1984,8 +1984,8 @@ mod misc_tests_json {
     use anyhow::Result;
     use quickfig::core::{
         config_types::{ JSON, TOML },
-        // AllowedType,
-        AllowedType,
+        // Field,
+        Field,
         Config,
         GetInner,
     };
@@ -2114,7 +2114,7 @@ mod misc_tests_toml {
     use anyhow::Result;
     use quickfig::core::{
         config_types::{ JSON, TOML },
-        AllowedType,
+        Field,
         Config,
         GetInner,
     };

@@ -8,8 +8,8 @@ use syn::{
 };
 use anyhow::Result;
 use quickfig_core::{
-    AllowedTypeMarker,
-    AllowedType,
+    FieldMarker,
+    Field,
     ConfigFields,
 };
 
@@ -22,7 +22,7 @@ pub fn config_field_macro(input: TokenStream) -> TokenStream {
     impl_config_field_macro(&ast)
 }
 
-fn meta_to_allowedtype(meta: ParseNestedMeta<'_>) -> Result<AllowedTypeMarker, syn::Error> {
+fn meta_to_field(meta: ParseNestedMeta<'_>) -> Result<FieldMarker, syn::Error> {
     if let Some(ident) = meta.path.get_ident() {
         let ty: syn::Type = match syn::parse(ident.to_token_stream().into()) {
             Ok(t) => t,
@@ -32,7 +32,7 @@ fn meta_to_allowedtype(meta: ParseNestedMeta<'_>) -> Result<AllowedTypeMarker, s
         };
         // println!("ty: {:#?}", ty);
         if let syn::Type::Path(type_path) = ty {
-            if let Some(at) = AllowedTypeMarker::from_type_path(&type_path) {
+            if let Some(at) = FieldMarker::from_type_path(&type_path) {
                 return Ok(at);
             } else {
                 return Err(meta.error("Unsupported type. Available types are String, bool, char, u8..u128, i8..i128, f32..f64"));
@@ -47,7 +47,7 @@ fn meta_to_allowedtype(meta: ParseNestedMeta<'_>) -> Result<AllowedTypeMarker, s
 
 struct VariantDefinition {
     ident: Ident,
-    allowed_types: Vec<AllowedTypeMarker>,
+    allowed_types: Vec<FieldMarker>,
     keys: Vec<String>
 }
 
@@ -55,7 +55,7 @@ impl VariantDefinition {
     fn new(ident: Ident) -> Self {
         Self {ident, allowed_types: vec![], keys: vec![]}
     }
-    fn add_type(&mut self, ty: AllowedTypeMarker) {
+    fn add_type(&mut self, ty: FieldMarker) {
         self.allowed_types.push(ty);
     }
     fn add_key(&mut self, key: String) {
@@ -91,7 +91,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                                     return Err(meta.error("Must be 1 param"));
                                 } else {count += 1;}
 
-                                let allowed: AllowedTypeMarker = meta_to_allowedtype(meta)?;
+                                let allowed: FieldMarker = meta_to_field(meta)?;
                                 this_variant.add_type(allowed);
                                 // let astr = format!("{:#?}", allowed);
                                 Ok(())
@@ -99,7 +99,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                         },
                         Some(ident) if ident.eq("any_of") => {
                             attr.parse_nested_meta(|meta| {
-                                let allowed: AllowedTypeMarker = meta_to_allowedtype(meta)?;
+                                let allowed: FieldMarker = meta_to_field(meta)?;
                                 this_variant.add_type(allowed);
                                 // let astr = format!("{:#?}", allowed);
                                 Ok(())
@@ -152,7 +152,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                     // only push if some (if parsing was successful)
                     if let Some(at) = self.parse_allowed_type(
                         stringify!(#var_name),
-                        quickfig::core::AllowedTypeMarker::#at_ident
+                        quickfig::core::FieldMarker::#at_ident
                     ) {
                         at_wrappers.push(at);
                     }
@@ -173,7 +173,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                             // only push if some (if parsing was successful)
                             if let Some(at) = self.parse_allowed_type(
                                 #key,
-                                quickfig::core::AllowedTypeMarker::#at_ident
+                                quickfig::core::FieldMarker::#at_ident
                             ) {
                                 at_wrappers.push(at);
                             }
@@ -207,9 +207,9 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                     // Config file has the key associated with this variant's name
                     println!("key found: {}", stringify!(#var_name));
                     // declare this here, then have each iter loop push to it
-                    let mut at_wrappers: Vec<quickfig::core::AllowedType> = vec![];
+                    let mut at_wrappers: Vec<quickfig::core::Field> = vec![];
                     // for each allowed type in list, try to parse &Value
-                    // self.parse_allowed_type(at: AllowedTypeMarker) -> Option<ATWrapper>
+                    // self.parse_allowed_type(at: FieldMarker) -> Option<ATWrapper>
                     // in each iteration I push to at_wrappers, but only if some
                     #(#at_actions)*
 
@@ -225,7 +225,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
         } else {
             // this variants keys wasn't empty, for key in keys do at_action using key instead of #var
             quote!{
-                let mut at_wrappers: Vec<quickfig::core::AllowedType> = vec![];
+                let mut at_wrappers: Vec<quickfig::core::Field> = vec![];
 
                 #(#key_actions)*
 
@@ -263,15 +263,15 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
         trait #trait_ident {
             // type CF: quickfig_core::ConfigFields;
             type CF: quickfig::core::ConfigFields;
-            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::AllowedType>>;
+            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::Field>>;
         }
 
         impl #trait_ident for quickfig::core::Config<quickfig::core::config_types::JSON> {
             type CF = #name;
 
-            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::AllowedType>> {
+            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::Field>> {
                 
-                // Each arm in this match statement returns Option<Vec<AllowedType>>
+                // Each arm in this match statement returns Option<Vec<Field>>
                 // and UNLESS they have #[non-exhaustive] on their enum, I dont 
                 // think I need to handle the _ arm / default None return
                 match their_enum {
@@ -285,7 +285,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
         impl #trait_ident for quickfig::core::Config<quickfig::core::config_types::TOML> {
             type CF = #name;
 
-            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::AllowedType>> {
+            fn get(&self, their_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::Field>> {
                 
                 match their_enum {
                     #(#match_arms)*,
