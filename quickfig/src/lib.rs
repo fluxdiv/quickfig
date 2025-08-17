@@ -1,6 +1,17 @@
 // #![cfg_attr(test, doc = false)]
 //! # Quickfig
 //!
+//! This crate is *mostly* a wrapper around [Serde](https://serde.rs/) and crates that
+//! implement Serde's de/serialization model 
+//! ([serde_json](https://github.com/serde-rs/json) and [toml](https://docs.rs/toml)).
+//!
+//! Quickfig utilizes these crates to define a straight forward API 
+//! for reading values from configuration files in applications. 
+//! The benefit of using Quickfig is that it can replace a lot
+//! of boilerplate that you likely have/will have to write many 
+//! times as an application developer.
+//!
+//!
 //! ## Modules
 //!
 //! * `core` - Core exports for reading configuration files.
@@ -12,7 +23,7 @@
 //! $ cargo add quickfig --features derive
 //! ```
 //!
-//! Example config located at `/path/to/users_config.json`:
+//! Imagine that a user has their configuration file for your application at `/path/to/users_config.json` with the content:
 //!
 //! ```json
 //! {
@@ -41,50 +52,45 @@
 //!     #[must_be(String)] // must be parseable into String
 //!     Title,
 //!
-//!     // Key does not exist in the example `users_config.json`
+//!     // Notice that none of these keys exist in the example `users_config.json`
 //!     #[keys("Metadata", "metadata")]
 //!     #[must_be(String)]
 //!     Metadata
 //!
 //! }
 //!
-//! fn read_config() {
+//! fn read_config_id() -> Result<()> {
 //!     // create a "Config" instance
 //!     let config = Config::<JSON>::open("/path/to/users_config.json").unwrap();
 //!     
-//!     let id: Option<Vec<Field>> = config.get(MyFields::Id);
 //!     // id would be None if all 3 of the keys were missing ("id", "ID", "Ident")
+//!     let id: Option<Vec<Field>> = config.get(MyFields::Id);
 //!     // We know that "id" existed though, so unwrap the inner Vec<Field>
-//!     let id_matches: Vec<Field> = id.unwrap();
-//!     // id_matches contains all matched keys where the associated 
-//!     // value was able to be parsed into one of the `any_of` types.
-//!     // In this case, it would have a maximum length of 6.
+//!     let id: Vec<Field> = id.unwrap();
 //!
-//!     // While the full list of results is available if you need it, you most likely 
-//!     // expect the user's config to contain only 1 matching key per enum variant,
-//!     // and want to throw an error otherwise.
+//!     // Think of this Vec<Field> as containing all entries in the Config where both:
+//!     // 1) The key matched one of the values in `#[keys("id", "ID", "Ident")]`
+//!     // 2) The value could be parsed into 1 or more types in `#[any_of(u8, u16)]`
+//!     // In this case, the length of the Vec is 2.
+//!     
+//!     // NOTE: If the Config had multiple matching keys, for ex: {"id": 1,"ID": 2 },
+//!     // Then the length of the Vec would be 4, and you would need to disambiguate
+//!     // between the two.
 //!
-//!     // As a helper, `Vec<Field>` has a `.only_one_key()` method,
-//!     // and `Field` has a `.get_key()` method.
-//!     // Internally, `.only_one_key()` verifies that all `Field`s have
-//!     // the same key (using `.get_key()`), and returns an Error otherwise.
-//!     let id_matches: Vec<Field> = id_matches.only_one_key().unwrap();
+//!     // In most cases, you probably want the user's Config to contain only 1
+//!     // matching key (per enum variant), and you want to throw an Error with
+//!     // a helpful message otherwise.
 //!
-//!     // id_matches now contains 1 `Field` for every type in the 
-//!     // `#[any_of(u8, u16)]` annotation that was successfully parsed.
-//!     // Again, you can manually iterate if you want, or you can call
-//!     // additional helper methods implemented for `Vec<Field>`
+//!     // Verify that only 1 key was matched
+//!     let id: Vec<Field> = id.only_one_key().map_err(|_| println!("Your err msg"))?;
 //!
-//!     let u8_val: Option<u8> = id_matches.get_u8();
-//!     let u16_val: Option<u16> = id_matches.get_u16();
-//!
-//!     // *NOTE*: The `get_x()` methods on Vec<Field> return the *first* match,
-//!     // by internally iterating and calling `.get_x()` on each `Field`.
-//!     // If you validated with `only_one_key` prior to calling these methods,
-//!     // it is guaranteed there will be only 1 possible return value.
-//!     // If you did not, then a re-ordered Vec<Field> with identical elements
-//!     // may have a different return value.
-//!
+//!     // Lastly, to get u8/u16 value that was in the user's Config file:
+//!     let id_u8: Option<u8> = id.get_u8();
+//!     let id_u16: Option<u16> = id.get_u16();
+//!     
+//!     // If the value couldn't be parsed into a u8 or u16, then both of those
+//!     // methods would have returned None. In this case, the config file contained
+//!     // {"id": 9}, so they return `Some(9u8)` and `Some(9u16)` respectively.
 //! }
 //! ```
 //!
@@ -92,11 +98,6 @@
 //!
 //! * `derive` - Enables the procedural macro for automatic `ConfigFields` derivation.
 //!
-//! ## Notes
-//!
-
-// quickfig/quickfig/src/lib.rs
-
 
 /// * Core library
 /// * Only import `quickfig::core::ConfigFields` if you are manually implementing,
@@ -105,8 +106,6 @@ pub mod core {
     pub use quickfig_core::*;
 }
 
-// #[cfg(feature = "derive")]
-// extern crate quickfig_derive;
 
 /// Derive macro for `ConfigFields`
 /// # Requirements
