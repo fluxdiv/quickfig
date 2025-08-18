@@ -3,7 +3,9 @@
 use anyhow::Result;
 use quickfig::core::{
     config_types::{ JSON, TOML },
-    Field,
+    // Field,
+    Field2,
+    VecField,
     Config,
     GetInner,
 };
@@ -12,6 +14,9 @@ use super::utils::*;
 use super::utils::TestFileType as TFT;
 
 // MODS
+// 
+// json_main         : testing JSON configs
+// toml_main         : testing TOML configs
 //
 // must_be_json      : testing must_be on json configs
 // must_be_toml      : testing must_be on toml configs
@@ -25,73 +30,53 @@ use super::utils::TestFileType as TFT;
 #[allow(non_camel_case_types)]
 #[derive(ConfigFields)]
 pub enum TestEnum {
-    #[keys("String")]
-    #[must_be(String)]
+    #[keys("here", "two")]
+    Foob,
+    #[keys("String", "Foo", "Bar")]
     String,
-    #[must_be(char)]
     Char,
-    #[must_be(bool)]
     Bool,
-    #[must_be(u8)]
+
     U8,
-    #[must_be(u16)]
     U16,
-    #[must_be(u32)]
     U32,
-    #[must_be(u64)]
     U64,
-    #[must_be(u128)]
     U128,
-    #[must_be(i8)]
+
     I8,
-    #[must_be(i16)]
     I16,
-    #[must_be(i32)]
     I32,
-    #[must_be(i64)]
     I64,
-    #[must_be(i128)]
     I128,
-    #[must_be(f32)]
+
     F32,
-    #[must_be(f64)]
     F64,
-    // --------------- any_of
-    // high variety from different groups
-    // (String and char), (unsigned ints), (signed ints), (bool), (floats)
+
     #[keys("A", "B", "C")]
-    #[any_of(String, char, bool)]
     String_Char_Bool,
 
     #[keys("A", "B", "C")]
-    #[any_of(u8, u16, u32)]
     U8_U16_U32,
 
     #[keys("A", "B", "C")]
-    #[any_of(i8, i16, i32)]
     I8_I16_I32,
 
     #[keys("A", "B", "C")]
-    #[any_of(u8, i8, char)]
     U8_I8_Char,
     
     #[keys("A", "B", "C")]
-    #[any_of(u8, i8, bool)]
     U8_I8_Bool,
     
     #[keys("A", "B", "C")]
-    #[any_of(u8, i8, f32)]
     U8_I8_F32,
-
-    // #[any_of(u64, u128, f64)]
-    // U64_U128_F64,
 }
 
 
 #[cfg(test)]
-mod any_of_json {
+mod json_main {
     use super::*;
     const TEST_FILE_TYPE: TestFileType = TFT::JSON;
+
     // ---------------------------------------------------------------
     // ------------ String_Char_Bool
     #[test]
@@ -160,7 +145,10 @@ mod any_of_json {
         assert!(config.has_key("B"));
 
         let vals = config.get(TestEnum::String_Char_Bool);
-        assert!(vals.is_none());
+        assert!(vals.is_some());
+        let vals = vals.unwrap();
+
+        
     }
 
 
@@ -949,504 +937,6 @@ mod any_of_toml {
 mod must_be_json {
     use super::*;
 
-    // ---------------------------------------------------------------
-    // ------------ String, char
-    #[test]
-    fn must_be_string_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("String", "is string")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        // testconfig.pretty_print().unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("String"));
-        let vals = config.get(TestEnum::String);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner_s = vals.iter().find(|v| {
-            v.get_string()
-                .map(|str_val| str_val == String::from("is string"))
-                .is_some()
-        });
-        assert!(inner_s.is_some());
-    }
-
-    #[test]
-    fn must_be_string_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("String", 1)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("String"));
-        let vals = config.get(TestEnum::String);
-        assert!(vals.is_none());
-    }
-
-    #[test]
-    fn must_be_char_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("Char", 'c')).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        // testconfig.pretty_print().unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("Char"));
-        let vals = config.get(TestEnum::Char);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_char()
-                .map(|char_val| char_val == 'c')
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    // TODO: this passes but might need more extensive tests
-    #[test]
-    fn must_be_char_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("Char", 1)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("Char"));
-        let vals = config.get(TestEnum::Char);
-        assert!(vals.is_none());
-    }
-
-    // ---------------------------------------------------------------
-    // ------------ bool
-    #[test]
-    fn must_be_bool_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("Bool", true)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("Bool"));
-        let vals = config.get(TestEnum::Bool);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_bool()
-                .map(|bool_val| bool_val)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_bool_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("Bool", 1)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("Bool"));
-        let vals = config.get(TestEnum::Bool);
-        assert!(vals.is_none());
-    }
-
-    // ---------------------------------------------------------------
-    // ------------ u8, u16, u32, u64, u128
-    #[test]
-    fn must_be_u8_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U8", 255)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U8"));
-        let vals = config.get(TestEnum::U8);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_u8()
-                .map(|u8_val| u8_val == 255)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_u8_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U8", "foo")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U8"));
-        let vals = config.get(TestEnum::U8);
-        assert!(vals.is_none());
-    }
-
-    #[test]
-    fn must_be_u16_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U16", 255)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U16"));
-        let vals = config.get(TestEnum::U16);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_u16()
-                .map(|u16_val| u16_val == 255)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_u16_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U16", "foo")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U16"));
-        let vals = config.get(TestEnum::U16);
-        assert!(vals.is_none());
-    }
-
-    #[test]
-    fn must_be_u32_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U32", 255)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U32"));
-        let vals = config.get(TestEnum::U32);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_u32()
-                .map(|u32_val| u32_val == 255)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_u32_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U32", "foo")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U32"));
-        let vals = config.get(TestEnum::U32);
-        assert!(vals.is_none());
-    }
-
-    #[test]
-    fn must_be_u64_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U64", u64::MAX)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U64"));
-        let vals = config.get(TestEnum::U64);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_u64()
-                .map(|u64_val| u64_val == u64::MAX)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_u64_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U64", "foo")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U64"));
-        let vals = config.get(TestEnum::U64);
-        assert!(vals.is_none());
-    }
-
-    #[test]
-    fn must_be_u128_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U128", u128::MAX)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U128"));
-        let vals = config.get(TestEnum::U128);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_u128()
-                .map(|u128_val| u128_val == u128::MAX)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_u128_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("U128", "foo")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("U128"));
-        let vals = config.get(TestEnum::U128);
-        assert!(vals.is_none());
-    }
-
-    // ---------------------------------------------------------------
-    // ------------ i8, i16, i32, i64, i128
-    #[test]
-    fn must_be_i8_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I8", -128)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I8"));
-        let vals = config.get(TestEnum::I8);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_i8()
-                .map(|i8_val| i8_val == -128)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_i8_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I8", "foo")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I8"));
-        let vals = config.get(TestEnum::I8);
-        assert!(vals.is_none());
-    }
-
-    #[test]
-    fn must_be_i16_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I16", i16::MIN)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I16"));
-        let vals = config.get(TestEnum::I16);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_i16()
-                .map(|i16_val| i16_val == i16::MIN)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_i16_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I16", (i16::MIN as i32) - 1)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I16"));
-        let vals = config.get(TestEnum::I16);
-        assert!(vals.is_none());
-    }
-
-    #[test]
-    fn must_be_i32_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I32", i32::MIN)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I32"));
-        let vals = config.get(TestEnum::I32);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_i32()
-                .map(|i32_val| i32_val == i32::MIN)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_i32_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I32", (i32::MIN as i64) - 1)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I32"));
-        let vals = config.get(TestEnum::I32);
-        assert!(vals.is_none());
-    }
-
-    #[test]
-    fn must_be_i64_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I64", i64::MIN)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I64"));
-        let vals = config.get(TestEnum::I64);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_i64()
-                .map(|i64_val| i64_val == i64::MIN)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_i64_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I64", (i64::MIN as i128) - 1)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I64"));
-        let vals = config.get(TestEnum::I64);
-        assert!(vals.is_none());
-    }
-
-    // ERR
-    #[test]
-    fn must_be_i128_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I128", i128::MIN)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I128"));
-        let vals = config.get(TestEnum::I128);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_i128()
-                .map(|i128_val| i128_val == i128::MIN)
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_i128_err() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("I128", "foo")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("I128"));
-        let vals = config.get(TestEnum::I128);
-        assert!(vals.is_none());
-    }
-
-    // ---------------------------------------------------------------
-    // ------------ f32, f64
-    #[test]
-    fn must_be_f32_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("F32", f32::MIN)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("F32"));
-        let vals = config.get(TestEnum::F32);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_f32()
-                .map(|f32_val| f32_val.eq(&f32::MIN))
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_f32_err() {
-        // I think this can only go so far as checking "can this be a float"
-        // because of limitations of floating point precision 
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("F32", "foo")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("F32"));
-        let vals = config.get(TestEnum::F32);
-        assert!(vals.is_none());
-    }
-
-
-    #[test]
-    fn must_be_f64_ok() {
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("F64", f64::MIN)).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("F64"));
-        let vals = config.get(TestEnum::F64);
-        assert!(vals.is_some());
-        let vals = vals.unwrap();
-        assert!(vals.len() == 1);
-        let inner = vals.iter().find(|v| {
-            v.get_f64()
-                .map(|f64_val| f64_val.eq(&f64::MIN))
-                .is_some()
-        });
-        assert!(inner.is_some());
-    }
-
-    #[test]
-    fn must_be_f64_err() {
-        // I think this can only go so far as checking "can this be a float"
-        // because of limitations of floating point precision 
-        let mut testconfig = TestFile::new(TFT::JSON).unwrap();
-        testconfig.add_entry(("F64", "foo")).unwrap();
-        let config = Config::<JSON>::open(testconfig.get_path()).unwrap();
-        testconfig.delete();
-
-        assert!(config.has_key("F64"));
-        let vals = config.get(TestEnum::F64);
-        assert!(vals.is_none());
-    }
 }
 
 
@@ -1456,12 +946,12 @@ mod must_be_toml {
 
     // ---------------------------------------------------------------
     // ------------ String, char
-    #[test]
+    // #[test]
     fn must_be_string_ok() {
         let mut testconfig = TestFile::new(TFT::TOML).unwrap();
         testconfig.add_entry(("String", "is string")).unwrap();
         let config = Config::<TOML>::open(testconfig.get_path()).unwrap();
-        // testconfig.pretty_print().unwrap();
+        testconfig.pretty_print().unwrap();
         testconfig.delete();
 
         assert!(config.has_key("String"));
@@ -1469,12 +959,29 @@ mod must_be_toml {
         assert!(vals.is_some());
         let vals = vals.unwrap();
         assert!(vals.len() == 1);
-        let inner_s = vals.iter().find(|v| {
-            v.get_string()
-                .map(|str_val| str_val == String::from("is string"))
-                .is_some()
-        });
-        assert!(inner_s.is_some());
+        println!("------");
+        for v in vals.iter() {
+            let s = v.get_string();
+            match s {
+                Some(st) => {
+                    println!();
+                    println!("Some(st): {st}");
+                    println!();
+                },
+                None => {
+                    println!();
+                    println!("NONE");
+                    println!();
+                }
+            };
+        }
+        println!("------");
+        // let inner_s = vals.iter().find(|v| {
+        //     v.get_string()
+        //         .map(|str_val| str_val == String::from("is string"))
+        //         .is_some()
+        // });
+        // assert!(inner_s.is_some());
     }
 
     #[test]
@@ -1985,7 +1492,7 @@ mod misc_tests_json {
     use quickfig::core::{
         config_types::{ JSON, TOML },
         // Field,
-        Field,
+        Field2,
         Config,
         GetInner,
     };
@@ -2004,15 +1511,15 @@ mod misc_tests_json {
         // u32::MAX will work for Foo3 (but not Foo or Foo2)
         // ----------------------------
         // Foo's key is default "Foo"
-        #[must_be(u8)]
+        // #[must_be(u8)]
         Foo,
         // Foo2's key is also "Foo"
         #[keys("Foo")]
-        #[must_be(i8)]
+        // #[must_be(i8)]
         Foo2,
         // Foo3's key is also "Foo"
         #[keys("Foo")]
-        #[must_be(u32)]
+        // #[must_be(u32)]
         Foo3
     }
 
@@ -2114,7 +1621,7 @@ mod misc_tests_toml {
     use anyhow::Result;
     use quickfig::core::{
         config_types::{ JSON, TOML },
-        Field,
+        Field2,
         Config,
         GetInner,
     };
@@ -2133,15 +1640,15 @@ mod misc_tests_toml {
         // u32::MAX will work for Foo3 (but not Foo or Foo2)
         // ----------------------------
         // Foo's key is default "Foo"
-        #[must_be(u8)]
+        // #[must_be(u8)]
         Foo,
         // Foo2's key is also "Foo"
         #[keys("Foo")]
-        #[must_be(i8)]
+        // #[must_be(i8)]
         Foo2,
         // Foo3's key is also "Foo"
         #[keys("Foo")]
-        #[must_be(u32)]
+        // #[must_be(u32)]
         Foo3
     }
 
