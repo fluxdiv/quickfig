@@ -19,7 +19,7 @@
 //!
 //! ## Quickstart
 //!
-//! ```
+//! ```ignore
 //! $ cargo add quickfig --features derive
 //! ```
 //!

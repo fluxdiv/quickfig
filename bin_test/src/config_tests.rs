@@ -2,57 +2,11 @@
 // use super::utils::*;
 // use super::utils::TestFileType as TFT;
 
-
-#[cfg(test)]
-mod tests_misc {
-    use super::super::utils::*;
-    use super::super::utils::TestFileType as TFT;
-    use quickfig::core::{
-        config_types::{ JSON, TOML },
-        Config,
-    };
-
-    #[test]
-    fn test_empty_file_1() {
-        // Trying to create Config w/ empty json file should error
-        let test1: TestFile = TestFile::new(TFT::JSON).unwrap();
-        let config_err = Config::<JSON>::open(test1.get_path());
-        assert!(config_err.is_err());
-        test1.delete().unwrap();
-    }
-
-    #[test]
-    fn test_empty_file_2() {
-        // Trying to create Config w/ empty toml file should error
-        let test2: TestFile = TestFile::new(TFT::TOML).unwrap();
-        let config_err2 = Config::<TOML>::open(test2.get_path());
-        assert!(config_err2.is_err());
-        test2.delete().unwrap();
-    }
-
-    #[test]
-    fn utils_test() {
-        let mut test1: TestFile = TestFile::new(TFT::JSON).unwrap();
-        test1.add_entry(("foo", "bar")).unwrap();
-        test1.add_entry(("baz", 69)).unwrap();
-        test1.add_entry(("boop", true)).unwrap();
-        test1.add_entry(("x", vec![1u8, 2u8])).unwrap();
-        println!("path: {}", test1.get_path());
-        test1.pretty_print().unwrap();
-        test1.delete().unwrap();
-        println!("----------------------------------");
-        let mut test2: TestFile = TestFile::new(TFT::TOML).unwrap();
-        test2.add_entry(("foo", "bar")).unwrap();
-        test2.add_entry(("baz", 69)).unwrap();
-        test2.add_entry(("boop", true)).unwrap();
-        test2.add_entry(("x", vec![1u8, 2u8])).unwrap();
-        println!("path: {}", test2.get_path());
-        test2.pretty_print().unwrap();
-        test2.delete().unwrap();
-    }
-
-}
-
+// MODS
+// 
+// tests_core        : testing quickfig_core (Config,)
+// tests_misc        : misc Config tests
+// tests_utils       : testing the test utils
 
 #[cfg(test)]
 mod tests_core {
@@ -78,7 +32,6 @@ mod tests_core {
         let _config = Config::<TOML>::open(test_toml.get_path()).unwrap();
         test_toml.delete().unwrap();
     }
-
 
     #[test]
     fn test_open_first_match_json() {
@@ -169,5 +122,127 @@ mod tests_core {
         t2.delete().unwrap();
         t3.delete().unwrap();
     }
-
 }
+
+
+#[cfg(test)]
+mod tests_misc {
+    use super::super::utils::*;
+    use super::super::utils::TestFileType as TFT;
+    use quickfig::core::{
+        config_types::{ JSON, TOML },
+        Config,
+    };
+
+    #[test]
+    fn test_empty_file_1() {
+        // Trying to create Config w/ empty json file should error
+        let test1: TestFile = TestFile::new(TFT::JSON).unwrap();
+        let config_err = Config::<JSON>::open(test1.get_path());
+        assert!(config_err.is_err());
+        test1.delete().unwrap();
+    }
+
+    #[test]
+    fn test_empty_file_2() {
+        // Trying to create Config w/ empty toml file should error
+        let test2: TestFile = TestFile::new(TFT::TOML).unwrap();
+        let config_err2 = Config::<TOML>::open(test2.get_path());
+        assert!(config_err2.is_err());
+        test2.delete().unwrap();
+    }
+}
+
+
+#[cfg(test)]
+mod tests_utils {
+    use super::super::utils::*;
+    use super::super::utils::TestFileType as TFT;
+    use quickfig::core::{
+        config_types::{ JSON, TOML },
+        Config,
+    };
+
+    #[test]
+    fn test_add_all_type_entries_json() {
+        let mut testfile = TestFile::new(TFT::JSON).unwrap();
+        testfile.add_all_type_entries(TFT::JSON).unwrap();
+        let config = Config::<JSON>::open(testfile.get_path()).unwrap();
+        testfile.pretty_print().unwrap();
+        testfile.delete().unwrap();
+        // String & char
+        assert!(config.has_key("String"));
+        assert!(config.has_key("String_Empty"));
+        assert!(config.has_key("Char"));
+        // Booleans
+        assert!(config.has_key("Bool_False"));
+        assert!(config.has_key("Bool_True"));
+        // Unsigned integers
+        assert!(config.has_key("U8_MAX"));
+        assert!(config.has_key("U8_MIN"));
+        assert!(config.has_key("U16_MAX"));
+        assert!(config.has_key("U16_MIN"));
+        assert!(config.has_key("U32_MAX"));
+        assert!(config.has_key("U32_MIN"));
+        assert!(config.has_key("U64_MAX"));
+        assert!(config.has_key("U64_MIN"));
+        assert!(config.has_key("U128_MAX"));
+        assert!(config.has_key("U128_MIN"));
+        // Signed integers
+        assert!(config.has_key("I8_MAX"));
+        assert!(config.has_key("I8_MIN"));
+        assert!(config.has_key("I16_MAX"));
+        assert!(config.has_key("I16_MIN"));
+        assert!(config.has_key("I32_MAX"));
+        assert!(config.has_key("I32_MIN"));
+        assert!(config.has_key("I64_MAX"));
+        assert!(config.has_key("I64_MIN"));
+        assert!(config.has_key("I128_MAX"));
+        assert!(config.has_key("I128_MIN"));
+        // Floating point minimum positive values
+        assert!(config.has_key("F32_MIN_POSITIVE"));
+        assert!(config.has_key("F64_MIN_POSITIVE"));
+    }
+
+    #[test]
+    fn test_add_all_type_entries_toml() {
+        let mut testfile = TestFile::new(TFT::TOML).unwrap();
+        testfile.add_all_type_entries(TFT::TOML).unwrap();
+        let config = Config::<TOML>::open(testfile.get_path()).unwrap();
+        testfile.pretty_print().unwrap();
+        testfile.delete().unwrap();
+        // String & char
+        assert!(config.has_key("String"));
+        assert!(config.has_key("String_Empty"));
+        assert!(config.has_key("Char"));
+        // Booleans
+        assert!(config.has_key("Bool_False"));
+        assert!(config.has_key("Bool_True"));
+        // Unsigned integers
+        assert!(config.has_key("U8_MAX"));
+        assert!(config.has_key("U8_MIN"));
+        assert!(config.has_key("U16_MAX"));
+        assert!(config.has_key("U16_MIN"));
+        assert!(config.has_key("U32_MAX"));
+        assert!(config.has_key("U32_MIN"));
+        // assert!(config.has_key("U64_MAX"));
+        // assert!(config.has_key("U64_MIN"));
+        // assert!(config.has_key("U128_MAX"));
+        // assert!(config.has_key("U128_MIN"));
+        // Signed integers
+        assert!(config.has_key("I8_MAX"));
+        assert!(config.has_key("I8_MIN"));
+        assert!(config.has_key("I16_MAX"));
+        assert!(config.has_key("I16_MIN"));
+        assert!(config.has_key("I32_MAX"));
+        assert!(config.has_key("I32_MIN"));
+        assert!(config.has_key("I64_MAX"));
+        assert!(config.has_key("I64_MIN"));
+        // assert!(config.has_key("I128_MAX"));
+        // assert!(config.has_key("I128_MIN"));
+        // Floating point minimum positive values
+        assert!(config.has_key("F32_MIN_POSITIVE"));
+        assert!(config.has_key("F64_MIN_POSITIVE"));
+    }
+}
+

@@ -135,21 +135,6 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
 
     let mut match_arms: Vec<quote::__private::TokenStream> = Vec::new();
 
-    // For each variant in the user's enum with derive(ConfigFields)
-
-    // let mut fields = Vec<Field2>;
-    
-    // Handling Keys
-    // - If the variant has no #[keys("id", "ID")], 
-    //   then the key is simply the variant name,
-    //   and there is only 1 Field2 to create.
-    //   - let key = #var_name;
-    //   - let value: impl Deserialize = config.get_at_str(#var_name);
-    //   - let f: Field2 = Field2 { key, value };
-    //   - fields.push(f);
-    // - If it does have #[keys("id", "ID")],
-    //   then I need to make a Field2 for each key.
-
     for variant in variant_defs.into_iter() {
         let var_name = variant.ident;
         let var_keys = variant.keys;
