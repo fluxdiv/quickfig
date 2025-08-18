@@ -2,7 +2,11 @@ use std::path::PathBuf;
 use config_types::DeserializedConfig;
 use serde::de::DeserializeOwned;
 use anyhow::{Result, anyhow};
-use crate::field::{FieldMarker, Field};
+use crate::field::{
+    FieldMarker,
+    // Field,
+    Field2
+};
 
 /// Wrapper around deserialized config file
 pub struct Config<S>(S)
@@ -11,19 +15,29 @@ pub struct Config<S>(S)
 
 impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
 
+    pub fn create_field<'a>(&'a self, key: &str) -> Option<Field2<'a, S>> {
+        let inner = &self.0;
+        if let Some(field_value) = inner.get_at_str(key) {
+            // create Field2 and return
+            let f2 = Field2::new(key, field_value);
+            return Some(f2);
+        }
+        None
+    }
+
     pub fn has_key(&self, key: &str) -> bool {
         let inner = &self.0;
         inner.has_key(key)
     }
 
-    pub fn parse_allowed_type(
-        &self,
-        key: &str,
-        at: FieldMarker
-    ) -> Option<Field> {
-        let inner = &self.0;
-        inner.parse_allowed_type(key, at)
-    }
+    // pub fn parse_allowed_type(
+    //     &self,
+    //     key: &str,
+    //     at: FieldMarker
+    // ) -> Option<Field> {
+    //     let inner = &self.0;
+    //     inner.parse_allowed_type(key, at)
+    // }
 
     fn new_from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Config<S>> {
 
@@ -140,7 +154,11 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
 
 // Re-exports
 pub mod config_types {
-    use crate::{FieldMarker, Field};
+    use crate::{
+        FieldMarker,
+        Field2
+        // Field
+    };
 
     pub type JSON = serde_json::Value;
     pub type TOML = toml::Value;
@@ -151,7 +169,22 @@ pub mod config_types {
         fn get_at_idx(&self, idx: usize) -> Option<&Self>;
         fn as_str(&self) -> Option<&str>;
         fn has_key(&self, key: &str) -> bool;
-        fn parse_allowed_type(&self, key: &str, at: FieldMarker) -> Option<Field>;
+        fn get_string(&self) -> Option<String>;
+        fn get_char(&self) -> Option<char>;
+        fn get_u8(&self) -> Option<u8>;
+        fn get_u16(&self) -> Option<u16>;
+        fn get_u32(&self) -> Option<u32>;
+        fn get_u64(&self) -> Option<u64>;
+        fn get_u128(&self) -> Option<u128>;
+        fn get_i8(&self) -> Option<i8>;
+        fn get_i16(&self) -> Option<i16>;
+        fn get_i32(&self) -> Option<i32>;
+        fn get_i64(&self) -> Option<i64>;
+        fn get_i128(&self) -> Option<i128>;
+        fn get_bool(&self) -> Option<bool>;
+        fn get_f32(&self) -> Option<f32>;
+        fn get_f64(&self) -> Option<f64>;
+        // fn parse_allowed_type(&self, key: &str, at: FieldMarker) -> Option<Field>;
     }
 
     impl DeserializedConfig for JSON {
@@ -167,233 +200,101 @@ pub mod config_types {
         fn has_key(&self, key: &str) -> bool {
             self.get(key).is_some()
         }
-        fn parse_allowed_type(
-            &self,
-            key: &str,
-            at: FieldMarker
-        ) -> Option<Field> {
-            // this is called with a key (defined on user's enum variant via `keys()` or variant name itself)
-            // and allowed type (defined on user's enum variant via `must_be()` or `any_of()`
-            let v = self.get(key)?;
-
-            match at {
-                FieldMarker::String => {
-                    v.as_str()
-                        .map(|s| Field::String {
-                            key: key.to_string(),
-                            value: s.to_string(),
-                        })
-                },
-                FieldMarker::Char => {
-                    v.as_str()
-                        .and_then(|s| s.chars().next())
-                        .map(|c| Field::Char {
-                            key: key.to_string(),
-                            value: c,
-                        })
-                },
-                FieldMarker::U8 => {
-                    v.as_u64()
-                        .and_then(|n| u8::try_from(n).ok())
-                        .map(|u| Field::U8 {
-                            key: key.to_string(),
-                            value: u,
-                        })
-                },
-                FieldMarker::U16 => {
-                    v.as_u64()
-                        .and_then(|n| u16::try_from(n).ok())
-                        .map(|u| Field::U16 {
-                            key: key.to_string(),
-                            value: u,
-                        })
-                },
-                FieldMarker::U32 => {
-                    v.as_u64()
-                        .and_then(|n| u32::try_from(n).ok())
-                        .map(|u| Field::U32 {
-                            key: key.to_string(),
-                            value: u,
-                        })
-                },
-                FieldMarker::U64 => {
-                    v.as_u64()
-                        .map(|u| Field::U64 {
-                            key: key.to_string(),
-                            value: u,
-                        })
-                },
-                FieldMarker::U128 => {
-                    v.as_number()
-                        .and_then(|num| num.as_u128())
-                        .map(|n| Field::U128 {
-                            key: key.to_string(),
-                            value: n,
-                        })
-                },
-                FieldMarker::I8 => {
-                    v.as_i64()
-                        .and_then(|n| i8::try_from(n).ok())
-                        .map(|i| Field::I8 {
-                            key: key.to_string(),
-                            value: i,
-                        })
-                },
-                FieldMarker::I16 => {
-                    v.as_i64()
-                        .and_then(|n| i16::try_from(n).ok())
-                        .map(|i| Field::I16 {
-                            key: key.to_string(),
-                            value: i,
-                        })
-                },
-                FieldMarker::I32 => {
-                    v.as_i64()
-                        .and_then(|n| i32::try_from(n).ok())
-                        .map(|i| Field::I32 {
-                            key: key.to_string(),
-                            value: i,
-                        })
-                },
-                FieldMarker::I64 => {
-                    v.as_i64()
-                        .map(|i| Field::I64 {
-                            key: key.to_string(),
-                            value: i,
-                        })
-                },
-                FieldMarker::I128 => {
-                    v.as_number()
-                        .and_then(|num| num.as_i128())
-                        .map(|n| Field::I128 {
-                            key: key.to_string(),
-                            value: n,
-                        })
-                },
-                FieldMarker::F32 => {
-                    v.as_f64()
-                        .map(|f| Field::F32 {
-                            key: key.to_string(),
-                            value: f as f32,
-                        })
-                },
-                FieldMarker::F64 => {
-                    v.as_f64()
-                        .map(|f| Field::F64 {
-                            key: key.to_string(),
-                            value: f,
-                        })
-                },
-                FieldMarker::Bool => {
-                    v.as_bool()
-                        .map(|b| Field::Bool {
-                            key: key.to_string(),
-                            value: b,
-                        })
-                },
-                _ => unreachable!()
-            }
-
-            //
-            // match at {
-            //     FieldMarker::String => {
-            //         v.as_str()
-            //             .map(|s| Field::String {
-            //                 key: key.to_string(),
-            //                 value: s.to_string()
-            //             })
-            //     },
-            //     FieldMarker::Char => {
-            //         v.as_str()
-            //             .and_then(|s| s.chars().next())
-            //             .map(|c| Field::Char(c))
-            //     },
-            //     FieldMarker::U8 => {
-            //         v.as_u64()
-            //             .and_then(|n| u8::try_from(n).ok())
-            //             .map(|u| Field::U8(u))
+        fn get_string(&self) -> Option<String> {
+            self.as_str().map(String::from)
+            // println!("get_string in JSON | key: {}", key);
+            // // it is `String("is string")`
+            // println!("full object JSON get_string: {:#?}", self);
+            // if self.is_null() {
+            //     println!("self is null");
+            // };
+            // if self.is_object() {
+            //     println!("self is object");
+            // };
+            // if self.is_string() {
+            //     println!("self is string");
+            //     // RIght here, this is printing the correct value "is string", 
+            //     // without trying
+            //     // to read the config at the key...
+            //     let p = self.as_str();
+            //     if p.is_none() {
+            //         println!("this is a bug in serde_json");
+            //     } else {
+            //         let punwrap = p.unwrap();
+            //         println!("punwrap: {}", punwrap);
             //     }
-            //     FieldMarker::U16 => {
-            //         v.as_u64()
-            //             .and_then(|n| u16::try_from(n).ok())
-            //             .map(|u| Field::U16(u))
-            //     },
-            //     FieldMarker::U32 => {
-            //         v.as_u64()
-            //             .and_then(|n| u32::try_from(n).ok())
-            //             .map(|u| Field::U32(u))
-            //     },
-            //     FieldMarker::U64 => {
-            //         v.as_u64()
-            //             .map(|u| Field::U64(u))
-            //     },
-            //     FieldMarker::U128 => {
-            //         v.as_number()
-            //             .and_then(|num| {
-            //                 num.as_u128()
-            //             })
-            //             .map(|n| {
-            //                 Field::U128(n)
-            //             })
-            //     },
-            //     FieldMarker::I8 => {
-            //         v.as_i64()
-            //             .and_then(|n| i8::try_from(n).ok())
-            //             .map(|u| Field::I8(u))
-            //     }
-            //     FieldMarker::I16 => {
-            //         v.as_i64()
-            //             .and_then(|n| i16::try_from(n).ok())
-            //             .map(|u| Field::I16(u))
-            //     },
-            //     FieldMarker::I32 => {
-            //         v.as_i64()
-            //             .and_then(|n| i32::try_from(n).ok())
-            //             .map(|u| Field::I32(u))
-            //     },
-            //     FieldMarker::I64 => {
-            //         v.as_i64()
-            //             .map(|u| Field::I64(u))
-            //     },
-            //     FieldMarker::I128 => {
-            //         v.as_number()
-            //             .and_then(|num| {
-            //                 num.as_i128()
-            //             })
-            //             .map(|n| {
-            //                 Field::I128(n)
-            //             })
-            //     },
-            //     FieldMarker::F32 => {
-            //         v.as_f64()
-            //             .map(|f| Field::F32(f as f32))
-            //     },
-            //     FieldMarker::F64 => {
-            //         v.as_f64()
-            //             .map(|f| Field::F64(f))
-            //     },
-            //     FieldMarker::Bool => {
-            //         v.as_bool().map(|b| Field::Bool(b))
-            //     },
-            //     // FieldMarker::Vec(ref inner_at) => {
-            //     //     let arr = v.as_array()?;
-            //     //     let mut parsed = vec![];
-            //     //     for val in arr {
-            //     //         let inner_wrapper = self.parse_allowed_type(key, at.clone())?;
-            //     //         parsed.push(inner_wrapper);
-            //     //     }
-            //     //     // wrap recursively
-            //     //     parsed.into_iter()
-            //     //         .rev()
-            //     //         .reduce(|acc, x| {
-            //     //             Field::Vec(Box::new(x))
-            //     //         })
-            //     //         .map(|y| Box::new(y))
-            //     //         .map(|z| Field::Vec(z))
-            //     // }
-            //     _ => unreachable!()
-            // }
-            // None
+            // };
+            // let v = self.get(key)?;
+            // // HERE
+            // // why is this returning None
+            // // let v = self.get("String")?;
+            // println!("get_string in JSON | key: {} | self.get(key)?: {:#?}", key, v);
+            // v.as_str().map(String::from)
+        }
+        fn get_char(&self) -> Option<char> {
+            self.as_str()
+                .and_then(|s| s.chars().next())
+        }
+
+        fn get_u8(&self) -> Option<u8> {
+            self.as_u64()
+                .and_then(|n| u8::try_from(n).ok())
+        }
+
+        fn get_u16(&self) -> Option<u16> {
+            self.as_u64()
+                .and_then(|n| u16::try_from(n).ok())
+        }
+
+        fn get_u32(&self) -> Option<u32> {
+            self.as_u64()
+                .and_then(|n| u32::try_from(n).ok())
+        }
+
+        fn get_u64(&self) -> Option<u64> {
+            self.as_u64()
+        }
+
+        fn get_u128(&self) -> Option<u128> {
+            self.as_number()
+                .and_then(|n| n.as_u128())
+        }
+
+        fn get_i8(&self) -> Option<i8> {
+            self.as_i64()
+                .and_then(|n| i8::try_from(n).ok())
+        }
+
+        fn get_i16(&self) -> Option<i16> {
+            self.as_i64()
+                .and_then(|n| i16::try_from(n).ok())
+        }
+
+        fn get_i32(&self) -> Option<i32> {
+            self.as_i64()
+                .and_then(|n| i32::try_from(n).ok())
+        }
+
+        fn get_i64(&self) -> Option<i64> {
+            self.as_i64()
+        }
+
+        fn get_i128(&self) -> Option<i128> {
+            self.as_number()
+                .and_then(|n| n.as_i128())
+        }
+
+        fn get_bool(&self) -> Option<bool> {
+            self.as_bool()
+        }
+
+        fn get_f32(&self) -> Option<f32> {
+            self.as_f64()
+                .and_then(|n| Some(n as f32))
+        }
+
+        fn get_f64(&self) -> Option<f64> {
+            self.as_f64()
         }
     }
 
@@ -410,134 +311,78 @@ pub mod config_types {
         fn has_key(&self, key: &str) -> bool {
             self.get(key).is_some()
         }
-        fn parse_allowed_type(
-            &self,
-            key: &str,
-            at: FieldMarker
-        ) -> Option<Field> {
 
-            let v = self.get(key)?;
+        fn get_string(&self) -> Option<String> {
+            self.as_str().map(String::from)
+        }
 
-            match at {
-                FieldMarker::String => {
-                    v.as_str()
-                        .map(|s| Field::String {
-                            key: key.to_string(),
-                            value: s.to_string(),
-                        })
-                },
-                FieldMarker::Char => {
-                    v.as_str()
-                        .and_then(|s| s.chars().next())
-                        .map(|c| Field::Char {
-                            key: key.to_string(),
-                            value: c,
-                        })
-                },
-                FieldMarker::U8 => {
-                    v.as_integer()
-                        .and_then(|n| u8::try_from(n).ok())
-                        .map(|u| Field::U8 {
-                            key: key.to_string(),
-                            value: u,
-                        })
-                },
-                FieldMarker::U16 => {
-                    v.as_integer()
-                        .and_then(|n| u16::try_from(n).ok())
-                        .map(|u| Field::U16 {
-                            key: key.to_string(),
-                            value: u,
-                        })
-                },
-                FieldMarker::U32 => {
-                    v.as_integer()
-                        .and_then(|n| u32::try_from(n).ok())
-                        .map(|u| Field::U32 {
-                            key: key.to_string(),
-                            value: u,
-                        })
-                },
-                FieldMarker::U64 => {
-                    v.as_integer()
-                        .and_then(|n| u64::try_from(n).ok())
-                        .map(|u| Field::U64 {
-                            key: key.to_string(),
-                            value: u,
-                        })
-                },
-                FieldMarker::U128 => {
-                    v.as_integer()
-                        .and_then(|n| u64::try_from(n).ok())
-                        .map(|u| Field::U128 {
-                            key: key.to_string(),
-                            value: u.into(),
-                        })
-                },
-                FieldMarker::I8 => {
-                    v.as_integer()
-                        .and_then(|n| i8::try_from(n).ok())
-                        .map(|i| Field::I8 {
-                            key: key.to_string(),
-                            value: i,
-                        })
-                },
-                FieldMarker::I16 => {
-                    v.as_integer()
-                        .and_then(|n| i16::try_from(n).ok())
-                        .map(|i| Field::I16 {
-                            key: key.to_string(),
-                            value: i,
-                        })
-                },
-                FieldMarker::I32 => {
-                    v.as_integer()
-                        .and_then(|n| i32::try_from(n).ok())
-                        .map(|i| Field::I32 {
-                            key: key.to_string(),
-                            value: i,
-                        })
-                },
-                FieldMarker::I64 => {
-                    v.as_integer()
-                        .map(|i| Field::I64 {
-                            key: key.to_string(),
-                            value: i,
-                        })
-                },
-                FieldMarker::I128 => {
-                    v.as_integer()
-                        .and_then(|n| u64::try_from(n).ok())
-                        .map(|u| Field::I128 {
-                            key: key.to_string(),
-                            value: u.into(),
-                        })
-                },
-                FieldMarker::F32 => {
-                    v.as_float()
-                        .map(|f| Field::F32 {
-                            key: key.to_string(),
-                            value: f as f32,
-                        })
-                },
-                FieldMarker::F64 => {
-                    v.as_float()
-                        .map(|f| Field::F64 {
-                            key: key.to_string(),
-                            value: f,
-                        })
-                },
-                FieldMarker::Bool => {
-                    v.as_bool()
-                        .map(|b| Field::Bool {
-                            key: key.to_string(),
-                            value: b,
-                        })
-                },
-                _ => unreachable!(),
-            }
+        fn get_char(&self) -> Option<char> {
+            self.as_str()
+                .and_then(|s| s.chars().next())
+        }
 
-            // None
+        fn get_u8(&self) -> Option<u8> {
+            self.as_integer()
+                .and_then(|n| u8::try_from(n).ok())
+        }
+
+        fn get_u16(&self) -> Option<u16> {
+            self.as_integer()
+                .and_then(|n| u16::try_from(n).ok())
+        }
+
+        fn get_u32(&self) -> Option<u32> {
+            self.as_integer()
+                .and_then(|n| u32::try_from(n).ok())
+        }
+
+        fn get_u64(&self) -> Option<u64> {
+            self.as_integer()
+                .and_then(|n| u64::try_from(n).ok())
+        }
+
+        fn get_u128(&self) -> Option<u128> {
+            self.as_integer()
+                .and_then(|n| u64::try_from(n).ok())
+                .map(|u| u.into())
+        }
+
+        fn get_i8(&self) -> Option<i8> {
+            self.as_integer()
+                .and_then(|n| i8::try_from(n).ok())
+        }
+
+        fn get_i16(&self) -> Option<i16> {
+            self.as_integer()
+                .and_then(|n| i16::try_from(n).ok())
+        }
+
+        fn get_i32(&self) -> Option<i32> {
+            self.as_integer()
+                .and_then(|n| i32::try_from(n).ok())
+        }
+
+        fn get_i64(&self) -> Option<i64> {
+            self.as_integer()
+        }
+
+        fn get_i128(&self) -> Option<i128> {
+            self.as_integer()
+                .and_then(|n| u64::try_from(n).ok())
+                .map(|u| u.into())
+        }
+
+        fn get_bool(&self) -> Option<bool> {
+            self.as_bool()
+        }
+
+        fn get_f32(&self) -> Option<f32> {
+            self.as_float()
+                .and_then(|f| Some(f as f32))
+        }
+
+        fn get_f64(&self) -> Option<f64> {
+            self.as_float()
         }
     }
 }

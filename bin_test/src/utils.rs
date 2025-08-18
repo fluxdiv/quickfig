@@ -1,14 +1,20 @@
-#![allow(non_camel_case_types)]
+#![allow(non_camel_case_types, dead_code)]
 use std::fs::{File, remove_file};
 use std::io::{Write, Read};
-use std::path::Path;
-use std::error::Error;
+// use std::path::Path;
+// use std::error::Error;
 use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
-use serde::de::DeserializeOwned;
-use serde::{Serialize, Deserialize};
+// use serde::de::DeserializeOwned;
+use serde::{
+    Serialize,
+    // Deserialize
+};
 use serde_json::{Value, to_writer};
-use toml::{self, ser};
+use toml::{
+    self,
+    // ser
+};
 use dirs::home_dir;
 
 pub type JSON_TEST = serde_json::Value;
@@ -184,7 +190,6 @@ impl TestFile {
         Ok(())
     }
 
-
     pub fn add_entry<K, V>(&mut self, entry: (K, V)) -> Result<(), FileError>
         where
             K: Serialize + ToString,
@@ -231,5 +236,84 @@ impl TestFile {
                 Ok(())
             }
         }
+    }
+
+    /// Adds the following key/value pairs:
+    /// ```json
+    /// {
+    ///     "String": "i am string",
+    ///     "String_Empty": "",
+    ///     "Char": "c",
+    ///     "Bool_False": false,
+    ///     "Bool_True": true,
+    ///     "U8_MAX": 255,
+    ///     "U8_MIN": 0,
+    ///     "U16_MAX": 65535,
+    ///     "U16_MIN": 0,
+    ///     "U32_MAX": 4294967295,
+    ///     "U32_MIN": 0,
+    ///     "U64_MAX": 18446744073709551615,
+    ///     "U64_MIN": 0,
+    ///     "U128_MAX": 340282366920938463463374607431768211455,
+    ///     "U128_MIN": 0,
+    ///     "I8_MAX": 127,
+    ///     "I8_MIN": -128,
+    ///     "I16_MAX": 32767,
+    ///     "I16_MIN": -32768,
+    ///     "I32_MAX": 2147483647,
+    ///     "I32_MIN": -2147483648,
+    ///     "I64_MAX": 9223372036854775807,
+    ///     "I64_MIN": -9223372036854775808,
+    ///     "I128_MAX": 170141183460469231731687303715884105727,
+    ///     "I128_MIN": -170141183460469231731687303715884105728,
+    ///     "F32_MIN_POSITIVE": 1.17549435e-38,
+    ///     "F64_MIN_POSITIVE": 2.2250738585072014e-308
+    /// }
+    /// ```
+    pub fn add_all_type_entries(&mut self, tft: TestFileType) -> Result<(), FileError> {
+        self.add_entry(("String", "i am string"))?;
+        self.add_entry(("String_Empty", ""))?;
+        self.add_entry(("Char", 'c'))?;
+        self.add_entry(("Bool_False", false))?;
+        self.add_entry(("Bool_True", true))?;
+
+        self.add_entry(("U8_MAX", u8::MAX))?;
+        self.add_entry(("U8_MIN", u8::MIN))?;
+        self.add_entry(("U16_MAX", u16::MAX))?;
+        self.add_entry(("U16_MIN", u16::MIN))?;
+        self.add_entry(("U32_MAX", u32::MAX))?;
+        self.add_entry(("U32_MIN", u32::MIN))?;
+
+        // Values outside I64 range not supported by TOML
+        match tft {
+            TestFileType::JSON => {
+                self.add_entry(("U64_MAX", u64::MAX))?;
+                self.add_entry(("U64_MIN", u64::MIN))?;
+                self.add_entry(("U128_MAX", u128::MAX))?;
+                self.add_entry(("U128_MIN", u128::MIN))?;
+            },
+            _ => {}
+        };
+
+        self.add_entry(("I8_MAX", i8::MAX))?;
+        self.add_entry(("I8_MIN", i8::MIN))?;
+        self.add_entry(("I16_MAX", i16::MAX))?;
+        self.add_entry(("I16_MIN", i16::MIN))?;
+        self.add_entry(("I32_MAX", i32::MAX))?;
+        self.add_entry(("I32_MIN", i32::MIN))?;
+        self.add_entry(("I64_MAX", i64::MAX))?;
+        self.add_entry(("I64_MIN", i64::MIN))?;
+        match tft {
+            TestFileType::JSON => {
+                self.add_entry(("I128_MAX", i128::MAX))?;
+                self.add_entry(("I128_MIN", i128::MIN))?;
+            },
+            _ => {}
+        };
+
+        self.add_entry(("F32_MIN_POSITIVE", f32::MIN_POSITIVE))?;
+        self.add_entry(("F64_MIN_POSITIVE", f64::MIN_POSITIVE))?;
+
+        Ok(())
     }
 }
