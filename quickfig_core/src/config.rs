@@ -30,15 +30,6 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
         inner.has_key(key)
     }
 
-    // pub fn parse_allowed_type(
-    //     &self,
-    //     key: &str,
-    //     at: FieldMarker
-    // ) -> Option<Field> {
-    //     let inner = &self.0;
-    //     inner.parse_allowed_type(key, at)
-    // }
-
     fn new_from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Config<S>> {
 
         let ext = path.as_ref().extension().ok_or_else(|| {
@@ -184,7 +175,6 @@ pub mod config_types {
         fn get_bool(&self) -> Option<bool>;
         fn get_f32(&self) -> Option<f32>;
         fn get_f64(&self) -> Option<f64>;
-        // fn parse_allowed_type(&self, key: &str, at: FieldMarker) -> Option<Field>;
     }
 
     impl DeserializedConfig for JSON {

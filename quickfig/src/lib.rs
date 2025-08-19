@@ -3,6 +3,7 @@
 //! ## Overview
 //!
 //! **Quickfig** defines a simple API for reading config files in applications.
+//!
 //! **Quickfig**'s goal is to replace a big chunk of boilerplate that you
 //! most likely have/will have to write many times as an application developer.
 //!
@@ -82,13 +83,94 @@
 //!     assert!(id_string.is_none());
 //! }
 //! ```
+//! ---
 //!
 //! ## Cookbook
 //! 
-//! A few more usage examples to show full feature set
-//! - Show open_first_match
-//! - Show snippet with all the different `.get_u8()` methods
+//! A few more usage examples to show features/recommended usage:
 //!
+//! * `Config::open` requires a **FULL** path. 
+//!   The [dirs](https://crates.io/crates/dirs) crate can be helpful to create these
+//! ```rust
+//! use dirs::*;
+//! use std::path::PathBuf;
+//!
+//! // Might be something like this on linux:
+//! // "/home/username/.config/my_app/config.json"
+//! let path_to_config: PathBuf = {
+//!     let mut home_dir = dirs::config_dir().unwrap();
+//!     home_dir.push("my_app/config.json");
+//!     home_dir
+//! };
+//! ```
+//!
+//! * List of get methods available on Vec<Field>:
+//! * **NOTE**: Any numbers outside of `i64` range will
+//!   error on TOML files as TOML spec does not support them
+//! ```rust,ignore
+//!     let config = Config::<JSON>::open("/path/to/config.json").unwrap();
+//!     let field = config.get(MyFields::SomeField).unwrap();
+//!
+//!     let f: Option<String> = field.get_string();
+//!     let f: Option<char>   = field.get_char();
+//!     let f: Option<bool>   = field.get_bool();
+//!     let f: Option<u8>     = field.get_u8();
+//!
+//!     let f: Option<String>  = field.get_string();
+//!     let f: Option<char>    = field.get_char();
+//!     let f: Option<bool>    = field.get_bool();
+//!     let f: Option<u8>      = field.get_u8();
+//!     let f: Option<u16>     = field.get_u16();
+//!     let f: Option<u32>     = field.get_u32();
+//!     let f: Option<u64>     = field.get_u64();
+//!     let f: Option<u128>    = field.get_u128();
+//!     let f: Option<i8>      = field.get_i8();
+//!     let f: Option<i16>     = field.get_i16();
+//!     let f: Option<i32>     = field.get_i32();
+//!     let f: Option<i64>     = field.get_i64();
+//!     let f: Option<i128>    = field.get_i128();
+//!     let f: Option<f32>     = field.get_f32();
+//!     let f: Option<f64>     = field.get_f64();
+//! ```
+//! 
+//! * Sometimes you may not know the exact path to a user's config file, but
+//!   you instead inform your user that it must in a list of possible locations.
+//!   
+//!   For example, your docs may state:
+//!   ```txt
+//!   MyApp will first check for your config at "~/.config/MyApp/config.json",
+//!   then "~/.MyApp/config.json", then "~/.local/share/MyApp/config.json"...
+//!   ```
+//!
+//!   For that situation there is a helper method when creating a Config:
+//!
+//! ```rust,ignore
+//!   // List of paths you want to check (order does matter!)
+//!   let paths = vec![
+//!       "~/.config/MyApp/config.json",
+//!       "~/.MyApp/config.json",
+//!       "~/.local/share/MyApp/config.json"
+//!   ];
+//!
+//!   // Search function that determines whether a path should be used or not.
+//!   // Return Some(path) to use a path or None to continue iterating.
+//!   // Will short-circuit first Some(path) return.
+//!   let search = Box::new(move |path: std::path::PathBuf| -> Option<PathBuf> {
+//!       if path.exists() {
+//!           Some(path)
+//!       } else {
+//!           None
+//!       }
+//!   });
+//!
+//!   // Will try to create a Config from the first path that your function returns
+//!   // Some(path) on. Errors if there is no match or problem creating Config.
+//!   // If no search function is provided then default is same as search above.
+//!   let config: Result<Config<JSON>> = Config::<JSON>::open_first_match(
+//!       paths,
+//!       Some(search)
+//!   );
+//! ```
 
 /// * Core library
 /// * Only import `quickfig::core::ConfigFields` if you are manually implementing,
