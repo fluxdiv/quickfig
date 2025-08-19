@@ -90,7 +90,7 @@
 //! A few more usage examples to show features/recommended usage:
 //!
 //! * `Config::open` requires a **FULL** path. 
-//!   The [dirs](https://crates.io/crates/dirs) crate can be helpful to create these
+//!   A crate like [dirs](https://crates.io/crates/dirs) can be helpful to create these
 //! ```rust,ignore
 //! use dirs::*;
 //! use std::path::PathBuf;
