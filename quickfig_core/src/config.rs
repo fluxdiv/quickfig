@@ -5,7 +5,7 @@ use anyhow::{Result, anyhow};
 use crate::field::{
     FieldMarker,
     // Field,
-    Field2
+    Field
 };
 
 /// Wrapper around deserialized config file
@@ -15,11 +15,11 @@ pub struct Config<S>(S)
 
 impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
 
-    pub fn create_field<'a>(&'a self, key: &str) -> Option<Field2<'a, S>> {
+    pub fn create_field<'a>(&'a self, key: &str) -> Option<Field<'a, S>> {
         let inner = &self.0;
         if let Some(field_value) = inner.get_at_str(key) {
-            // create Field2 and return
-            let f2 = Field2::new(key, field_value);
+            // create Field and return
+            let f2 = Field::new(key, field_value);
             return Some(f2);
         }
         None
@@ -147,7 +147,7 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
 pub mod config_types {
     use crate::{
         FieldMarker,
-        Field2
+        Field
         // Field
     };
 

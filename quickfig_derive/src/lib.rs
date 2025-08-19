@@ -10,7 +10,7 @@ use anyhow::Result;
 use quickfig_core::{
     FieldMarker,
     // Field,
-    Field2,
+    Field,
     ConfigFields,
 };
 
@@ -152,7 +152,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
 
         let key_actions: Vec<quote::__private::TokenStream> = field_keys.iter()
             .map(|key| {
-                // for key in field_keys, if self.has_key create Field2 then push
+                // for key in field_keys, if self.has_key create Field then push
                 quote! {
                     if !self.has_key(#key) {
                         // println!("key not found: {}", #key);
@@ -201,13 +201,13 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
         {
             type CF: quickfig::core::ConfigFields;
             fn get<'a>(&'a self, user_enum: Self::CF) -> 
-            std::option::Option<std::vec::Vec<quickfig::core::Field2<'a, S>>>;
+            std::option::Option<std::vec::Vec<quickfig::core::Field<'a, S>>>;
         }
 
         impl #trait_ident<quickfig::core::config_types::JSON> for quickfig::core::Config<quickfig::core::config_types::JSON> {
             type CF = #name;
 
-            fn get<'a>(&'a self, user_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::Field2<'a, quickfig::core::config_types::JSON>>> {
+            fn get<'a>(&'a self, user_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::Field<'a, quickfig::core::config_types::JSON>>> {
                 
                 // TODO
                 // Each arm in this match statement returns Option<Vec<Field>>
@@ -224,7 +224,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
         impl #trait_ident<quickfig::core::config_types::TOML> for quickfig::core::Config<quickfig::core::config_types::TOML> {
             type CF = #name;
 
-            fn get<'a>(&'a self, user_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::Field2<'a, quickfig::core::config_types::TOML>>> {
+            fn get<'a>(&'a self, user_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::Field<'a, quickfig::core::config_types::TOML>>> {
                 
                 match user_enum {
                     #(#match_arms)*,

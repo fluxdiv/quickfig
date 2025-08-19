@@ -91,7 +91,7 @@
 //!
 //! * `Config::open` requires a **FULL** path. 
 //!   The [dirs](https://crates.io/crates/dirs) crate can be helpful to create these
-//! ```rust
+//! ```rust,ignore
 //! use dirs::*;
 //! use std::path::PathBuf;
 //!

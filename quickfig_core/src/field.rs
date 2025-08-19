@@ -20,14 +20,14 @@ pub enum FieldMarker {
 /// * Contains the associated key, can be retrieved via `.get_key()`
 #[allow(non_camel_case_types)]
 #[derive(Debug)]
-pub struct Field2<'config, S: DeserializeOwned + DeserializedConfig> {
+pub struct Field<'config, S: DeserializeOwned + DeserializedConfig> {
     key: String,
     value: &'config S
 }
 
-impl<'a, S: DeserializeOwned + DeserializedConfig> Field2<'a, S> {
-    pub fn new(key: &str, value: &'a S) -> Field2<'a, S> {
-        Field2 { key: key.to_string(), value }
+impl<'a, S: DeserializeOwned + DeserializedConfig> Field<'a, S> {
+    pub fn new(key: &str, value: &'a S) -> Field<'a, S> {
+        Field { key: key.to_string(), value }
     }
 }
 
@@ -50,7 +50,7 @@ pub trait VecField {
     fn get_f64(&self) -> Option<f64>;
 }
 
-impl<S: DeserializeOwned + DeserializedConfig> VecField for Vec<Field2<'_, S>> {
+impl<S: DeserializeOwned + DeserializedConfig> VecField for Vec<Field<'_, S>> {
 
     // Validates that all `Field`s have the same key.
     // If this returns successfully, it is guaranteed that
@@ -170,7 +170,7 @@ pub trait GetInner {
 }
 
 
-impl<S: DeserializeOwned + DeserializedConfig> GetInner for Field2<'_, S> {
+impl<S: DeserializeOwned + DeserializedConfig> GetInner for Field<'_, S> {
     fn get_key(&self) -> String {
         self.key.clone()
     }
