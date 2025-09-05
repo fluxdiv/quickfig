@@ -4,7 +4,6 @@ use serde::de::DeserializeOwned;
 use anyhow::{Result, anyhow};
 use crate::field::{
     FieldMarker,
-    // Field,
     Field
 };
 
@@ -148,7 +147,6 @@ pub mod config_types {
     use crate::{
         FieldMarker,
         Field
-        // Field
     };
 
     pub type JSON = serde_json::Value;
@@ -192,34 +190,6 @@ pub mod config_types {
         }
         fn get_string(&self) -> Option<String> {
             self.as_str().map(String::from)
-            // println!("get_string in JSON | key: {}", key);
-            // // it is `String("is string")`
-            // println!("full object JSON get_string: {:#?}", self);
-            // if self.is_null() {
-            //     println!("self is null");
-            // };
-            // if self.is_object() {
-            //     println!("self is object");
-            // };
-            // if self.is_string() {
-            //     println!("self is string");
-            //     // RIght here, this is printing the correct value "is string", 
-            //     // without trying
-            //     // to read the config at the key...
-            //     let p = self.as_str();
-            //     if p.is_none() {
-            //         println!("this is a bug in serde_json");
-            //     } else {
-            //         let punwrap = p.unwrap();
-            //         println!("punwrap: {}", punwrap);
-            //     }
-            // };
-            // let v = self.get(key)?;
-            // // HERE
-            // // why is this returning None
-            // // let v = self.get("String")?;
-            // println!("get_string in JSON | key: {} | self.get(key)?: {:#?}", key, v);
-            // v.as_str().map(String::from)
         }
         fn get_char(&self) -> Option<char> {
             self.as_str()

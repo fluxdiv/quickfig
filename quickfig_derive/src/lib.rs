@@ -9,12 +9,10 @@ use syn::{
 use anyhow::Result;
 use quickfig_core::{
     FieldMarker,
-    // Field,
     Field,
     ConfigFields,
 };
 
-// quickfig_derive
 // https://doc.rust-lang.org/book/ch20-05-macros.html
 
 #[proc_macro_derive(ConfigFields, attributes(keys))]
@@ -22,29 +20,6 @@ pub fn config_field_macro(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
     impl_config_field_macro(&ast)
 }
-
-// fn meta_to_field(meta: ParseNestedMeta<'_>) -> Result<FieldMarker, syn::Error> {
-//     if let Some(ident) = meta.path.get_ident() {
-//         let ty: syn::Type = match syn::parse(ident.to_token_stream().into()) {
-//             Ok(t) => t,
-//             Err(_e) => {
-//                 return Err(meta.error("Failure parsing ident"));
-//             }
-//         };
-//         // println!("ty: {:#?}", ty);
-//         if let syn::Type::Path(type_path) = ty {
-//             if let Some(at) = FieldMarker::from_type_path(&type_path) {
-//                 return Ok(at);
-//             } else {
-//                 return Err(meta.error("Unsupported type. Available types are String, bool, char, u8..u128, i8..i128, f32..f64"));
-//             }
-//         } else {
-//             return Err(meta.error("ty is not Type::Path"));
-//         }
-//     } else {
-//         return Err(meta.error("Must be singular type"));
-//     }
-// }
 
 struct VariantDefinition {
     ident: Ident,
@@ -79,30 +54,6 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                     // println!("--- START ATTR: {:#?} ---", "");
                     // let attr_name = attr.path();
                     match attr.path().get_ident() {
-                        // Some(ident) if ident.eq("must_be") => {
-                        //     let mut count = 0;
-                        //     attr.parse_nested_meta(|meta| {
-                        //         if count != 0 {
-                        //             // This does cause LSP hints, but on enum itself
-                        //             // I think using span here is the way
-                        //             // panic!();
-                        //             return Err(meta.error("Must be 1 param"));
-                        //         } else {count += 1;}
-                        //
-                        //         let allowed: FieldMarker = meta_to_field(meta)?;
-                        //         this_variant.add_type(allowed);
-                        //         // let astr = format!("{:#?}", allowed);
-                        //         Ok(())
-                        //     }).unwrap();
-                        // },
-                        // Some(ident) if ident.eq("any_of") => {
-                        //     attr.parse_nested_meta(|meta| {
-                        //         let allowed: FieldMarker = meta_to_field(meta)?;
-                        //         this_variant.add_type(allowed);
-                        //         // let astr = format!("{:#?}", allowed);
-                        //         Ok(())
-                        //     }).unwrap();
-                        // },
                         Some(ident) if ident.eq("keys") => {
                             let keys: Punctuated<LitStr, Token![,]> = attr
                                 .parse_args_with(Punctuated::parse_terminated)
@@ -110,7 +61,6 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
 
                             for key in keys {
                                 this_variant.add_key(key.value());
-                                // println!("Got key: {}", key.value());
                             }
                         },
                         _ => {
@@ -131,7 +81,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
         },
     };
 
-    // Note to self: ALWAYS use full path for -EVERYTHING- in interpolated tokenstream
+    // NOTE: ALWAYS use full path for EVERYTHING in interpolated tokenstream
 
     let mut match_arms: Vec<quote::__private::TokenStream> = Vec::new();
 

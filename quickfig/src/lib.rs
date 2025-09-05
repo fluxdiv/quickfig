@@ -62,7 +62,7 @@
 //!
 //!     // Notice that id is a Vec<Field>. That is because the config could
 //!     // contain multiple matching keys, for example {"id": 1, "ID": 2}
-//!     // and you may want to handle that situation explicitely.
+//!     // and you may want to handle that situation explicitly.
 //!     // 
 //!     // However, most of the time you probably only want to accept 1
 //!     // matching key, and otherwise you want to error.
