@@ -68,7 +68,7 @@ impl TestFile {
                 home_dir.push(format!("test_file_{}.toml", timestamp));
             }
         }
-        println!("random_file_path: {:#?}", home_dir);
+        // println!("random_file_path: {:#?}", home_dir);
         home_dir.to_str().expect("non-unicode path").to_string()
     }
 
@@ -166,7 +166,7 @@ impl TestFile {
 
         match self.file_type {
             TestFileType::JSON => {
-                let mut json: Value = if contents.is_empty() {
+                let json: Value = if contents.is_empty() {
                     Value::Object(serde_json::Map::new())
                 } else {
                     serde_json::from_str(&contents).map_err(FileError::SerdeError)?
@@ -176,7 +176,7 @@ impl TestFile {
                 println!("{}", pretty);
             },
             TestFileType::TOML => {
-                let mut toml_value: toml::value::Table = if contents.is_empty() {
+                let toml_value: toml::value::Table = if contents.is_empty() {
                     toml::value::Table::new()
                 } else {
                     toml::de::from_str(&contents).map_err(|e| FileError::TomlError(format!("{:#?}", e)))?

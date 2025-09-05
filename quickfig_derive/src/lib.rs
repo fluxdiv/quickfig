@@ -138,12 +138,7 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
 
     let impl_gen = quote! {
 
-        impl quickfig::core::ConfigFields for #name {
-            fn hello_macro() {
-                println!("Hello, Macro! my name is {}!", stringify!(#name));
-                println!();
-            }
-        }
+        impl quickfig::core::ConfigFields for #name {}
 
         trait #trait_ident<S> 
             where
