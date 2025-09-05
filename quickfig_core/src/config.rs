@@ -4,8 +4,7 @@ use serde::de::DeserializeOwned;
 use anyhow::{Result, anyhow};
 use crate::field::{
     FieldMarker,
-    // Field,
-    Field2
+    Field
 };
 
 /// Wrapper around deserialized config file
@@ -15,11 +14,11 @@ pub struct Config<S>(S)
 
 impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
 
-    pub fn create_field<'a>(&'a self, key: &str) -> Option<Field2<'a, S>> {
+    pub fn create_field<'a>(&'a self, key: &str) -> Option<Field<'a, S>> {
         let inner = &self.0;
         if let Some(field_value) = inner.get_at_str(key) {
-            // create Field2 and return
-            let f2 = Field2::new(key, field_value);
+            // create Field and return
+            let f2 = Field::new(key, field_value);
             return Some(f2);
         }
         None
@@ -29,15 +28,6 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
         let inner = &self.0;
         inner.has_key(key)
     }
-
-    // pub fn parse_allowed_type(
-    //     &self,
-    //     key: &str,
-    //     at: FieldMarker
-    // ) -> Option<Field> {
-    //     let inner = &self.0;
-    //     inner.parse_allowed_type(key, at)
-    // }
 
     fn new_from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Config<S>> {
 
@@ -156,8 +146,7 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
 pub mod config_types {
     use crate::{
         FieldMarker,
-        Field2
-        // Field
+        Field
     };
 
     pub type JSON = serde_json::Value;
@@ -184,7 +173,6 @@ pub mod config_types {
         fn get_bool(&self) -> Option<bool>;
         fn get_f32(&self) -> Option<f32>;
         fn get_f64(&self) -> Option<f64>;
-        // fn parse_allowed_type(&self, key: &str, at: FieldMarker) -> Option<Field>;
     }
 
     impl DeserializedConfig for JSON {
@@ -202,34 +190,6 @@ pub mod config_types {
         }
         fn get_string(&self) -> Option<String> {
             self.as_str().map(String::from)
-            // println!("get_string in JSON | key: {}", key);
-            // // it is `String("is string")`
-            // println!("full object JSON get_string: {:#?}", self);
-            // if self.is_null() {
-            //     println!("self is null");
-            // };
-            // if self.is_object() {
-            //     println!("self is object");
-            // };
-            // if self.is_string() {
-            //     println!("self is string");
-            //     // RIght here, this is printing the correct value "is string", 
-            //     // without trying
-            //     // to read the config at the key...
-            //     let p = self.as_str();
-            //     if p.is_none() {
-            //         println!("this is a bug in serde_json");
-            //     } else {
-            //         let punwrap = p.unwrap();
-            //         println!("punwrap: {}", punwrap);
-            //     }
-            // };
-            // let v = self.get(key)?;
-            // // HERE
-            // // why is this returning None
-            // // let v = self.get("String")?;
-            // println!("get_string in JSON | key: {} | self.get(key)?: {:#?}", key, v);
-            // v.as_str().map(String::from)
         }
         fn get_char(&self) -> Option<char> {
             self.as_str()

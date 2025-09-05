@@ -4,7 +4,7 @@ use anyhow::Result;
 use quickfig::core::{
     config_types::{ JSON, TOML },
     // Field,
-    Field2,
+    Field,
     VecField,
     Config,
     GetInner,
@@ -426,7 +426,7 @@ mod misc_tests_json {
     use quickfig::core::{
         config_types::{ JSON, TOML },
         VecField,
-        Field2,
+        Field,
         Config,
         GetInner,
     };
@@ -526,7 +526,7 @@ mod misc_tests_toml {
     use quickfig::core::{
         config_types::{ JSON, TOML },
         VecField,
-        Field2,
+        Field,
         Config,
         GetInner,
     };

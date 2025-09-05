@@ -1,35 +1,35 @@
-// #![cfg_attr(test, doc = false)]
 //! # Quickfig
 //!
+//! ## Overview
+//!
+//! **Quickfig** defines a simple API for reading config files in applications.
+//!
+//! **Quickfig**'s goal is to replace a big chunk of boilerplate that you
+//! most likely have/will have to write many times as an application developer.
+//!
 //! This crate is *mostly* a wrapper around [Serde](https://serde.rs/) and crates that
-//! implement Serde's de/serialization model 
-//! ([serde_json](https://github.com/serde-rs/json) and [toml](https://docs.rs/toml)).
-//!
-//! Quickfig utilizes these crates to define a straight forward API 
-//! for reading values from configuration files in applications. 
-//! The benefit of using Quickfig is that it can replace a lot
-//! of boilerplate that you likely have/will have to write many 
-//! times as an application developer.
-//!
+//! implement Serde's de/serialization model, currently including:
+//! - [serde_json](https://github.com/serde-rs/json)
+//! - [toml](https://docs.rs/toml)
 //!
 //! ## Modules
 //!
-//! * `core` - Core exports for reading configuration files.
-//! * `derive` - Proc macro
+//! * `quickfig::core`   - Core exports for reading configuration files
+//! * `quickfig::derive` - Derive macro for config fields
 //!
+//! ## Features
+//!
+//! * `derive` - Enables the derive macro for ConfigFields
+//! ---
 //! ## Quickstart
 //!
 //! ```ignore
 //! $ cargo add quickfig --features derive
 //! ```
 //!
-//! Imagine that a user has their configuration file for your application at `/path/to/users_config.json` with the content:
-//!
+//! Imagine you want to read a user's config file at `/path/to/config.json` with:
 //! ```json
-//! {
-//!   "id": 9,
-//!   "title": "foo"
-//! }
+//! { "id": 9 , "title": "foo" }
 //! ```
 //!
 //! In your project:
@@ -41,63 +41,136 @@
 //!     config_types::JSON
 //! };
 //!
-//! // Define the fields you may want to access
+//! // Define the fields you may want to read
 //! #[derive(ConfigFields)]
 //! enum MyFields {
-//!     #[keys("id", "ID", "Ident")]
-//!     #[any_of(u8, u16)] // must be parseable into u8 or u16
+//!     #[keys("id", "ID")]
 //!     Id,
-//!
-//!     // Missing `keys` attribute defaults to (case-sensitive) variant name "Title"
-//!     #[must_be(String)] // must be parseable into String
+//!     // A missing `keys` attribute defaults to (case-sensitive) variant name "Title"
 //!     Title,
-//!
-//!     // Notice that none of these keys exist in the example `users_config.json`
-//!     #[keys("Metadata", "metadata")]
-//!     #[must_be(String)]
-//!     Metadata
-//!
 //! }
 //!
-//! fn read_config_id() -> Result<()> {
-//!     // create a "Config" instance
-//!     let config = Config::<JSON>::open("/path/to/users_config.json").unwrap();
+//! fn main() -> Result<()> {
+//!     // create a "Config" instance, errors if file doesnt exist/no permissions/etc
+//!     let config = Config::<JSON>::open("/path/to/config.json").unwrap();
 //!     
-//!     // id would be None if all 3 of the keys were missing ("id", "ID", "Ident")
-//!     let id: Option<Vec<Field>> = config.get(MyFields::Id);
-//!     // We know that "id" existed though, so unwrap the inner Vec<Field>
-//!     let id: Vec<Field> = id.unwrap();
+//!     // Getting the id
+//!     let Some(id): Option<Vec<Field<'_, JSON>>> = config.get(MyFields::Id) else {
+//!         // Config didn't have "id" or "ID" key
+//!         return Err(String::from("Config must have an id or ID key"));
+//!     }
 //!
-//!     // Think of this Vec<Field> as containing all entries in the Config where both:
-//!     // 1) The key matched one of the values in `#[keys("id", "ID", "Ident")]`
-//!     // 2) The value could be parsed into 1 or more types in `#[any_of(u8, u16)]`
-//!     // In this case, the length of the Vec is 2.
-//!     
-//!     // NOTE: If the Config had multiple matching keys, for ex: {"id": 1,"ID": 2 },
-//!     // Then the length of the Vec would be 4, and you would need to disambiguate
-//!     // between the two.
+//!     // Notice that id is a Vec<Field>. That is because the config could
+//!     // contain multiple matching keys, for example {"id": 1, "ID": 2}
+//!     // and you may want to handle that situation explicitly.
+//!     // 
+//!     // However, most of the time you probably only want to accept 1
+//!     // matching key, and otherwise you want to error.
+//!     if id.only_one_key().is_err() {
+//!        return Err(String::from("Config must have an id or ID key, but not both"));
+//!     };
 //!
-//!     // In most cases, you probably want the user's Config to contain only 1
-//!     // matching key (per enum variant), and you want to throw an Error with
-//!     // a helpful message otherwise.
+//!     // Lastly, getting out the value:
+//!     // Reminder that the file contained {"id": 9, "title": "foo"}
 //!
-//!     // Verify that only 1 key was matched
-//!     let id: Vec<Field> = id.only_one_key().map_err(|_| println!("Your err msg"))?;
-//!
-//!     // Lastly, to get u8/u16 value that was in the user's Config file:
 //!     let id_u8: Option<u8> = id.get_u8();
-//!     let id_u16: Option<u16> = id.get_u16();
-//!     
-//!     // If the value couldn't be parsed into a u8 or u16, then both of those
-//!     // methods would have returned None. In this case, the config file contained
-//!     // {"id": 9}, so they return `Some(9u8)` and `Some(9u16)` respectively.
+//!     if id_u8.is_none() {
+//!         return Err(String::from("Config id must be a valid u8 integer"));
+//!     };
+//!     assert!(id.get_u8().is_some_and(|id| id == 9u8));
+//!
+//!     let id_string: Option<String> = id.get_string();
+//!     assert!(id_string.is_none());
 //! }
 //! ```
+//! ---
 //!
-//! ## Features
+//! ## Cookbook
+//! 
+//! A few more usage examples to show features/recommended usage:
 //!
-//! * `derive` - Enables the procedural macro for automatic `ConfigFields` derivation.
+//! * `Config::open` requires a **FULL** path. 
+//!   A crate like [dirs](https://crates.io/crates/dirs) can be helpful to create these
+//! ```rust,ignore
+//! use dirs::*;
+//! use std::path::PathBuf;
 //!
+//! // Might be something like this on linux:
+//! // "/home/username/.config/my_app/config.json"
+//! let path_to_config: PathBuf = {
+//!     let mut home_dir = dirs::config_dir().unwrap();
+//!     home_dir.push("my_app/config.json");
+//!     home_dir
+//! };
+//! ```
+//!
+//! * List of get methods available on Vec<Field>:
+//! * **NOTE**: Any numbers outside of `i64` range will
+//!   error on TOML files as TOML spec does not support them
+//! ```rust,ignore
+//!     let config = Config::<JSON>::open("/path/to/config.json").unwrap();
+//!     let field = config.get(MyFields::SomeField).unwrap();
+//!
+//!     let f: Option<String> = field.get_string();
+//!     let f: Option<char>   = field.get_char();
+//!     let f: Option<bool>   = field.get_bool();
+//!     let f: Option<u8>     = field.get_u8();
+//!
+//!     let f: Option<String>  = field.get_string();
+//!     let f: Option<char>    = field.get_char();
+//!     let f: Option<bool>    = field.get_bool();
+//!     let f: Option<u8>      = field.get_u8();
+//!     let f: Option<u16>     = field.get_u16();
+//!     let f: Option<u32>     = field.get_u32();
+//!     let f: Option<u64>     = field.get_u64();
+//!     let f: Option<u128>    = field.get_u128();
+//!     let f: Option<i8>      = field.get_i8();
+//!     let f: Option<i16>     = field.get_i16();
+//!     let f: Option<i32>     = field.get_i32();
+//!     let f: Option<i64>     = field.get_i64();
+//!     let f: Option<i128>    = field.get_i128();
+//!     let f: Option<f32>     = field.get_f32();
+//!     let f: Option<f64>     = field.get_f64();
+//! ```
+//! 
+//! * Sometimes you may not know the exact path to a user's config file, but
+//!   you instead inform your user that it must in a list of possible locations.
+//!   
+//!   For example, your docs may state:
+//!   ```txt
+//!   MyApp will first check for your config at "~/.config/MyApp/config.json",
+//!   then "~/.MyApp/config.json", then "~/.local/share/MyApp/config.json"...
+//!   ```
+//!
+//!   For that situation there is a helper method when creating a Config:
+//!
+//! ```rust,ignore
+//!   // List of paths you want to check (order does matter!)
+//!   let paths = vec![
+//!       "~/.config/MyApp/config.json",
+//!       "~/.MyApp/config.json",
+//!       "~/.local/share/MyApp/config.json"
+//!   ];
+//!
+//!   // Search function that determines whether a path should be used or not.
+//!   // Return Some(path) to use a path or None to continue iterating.
+//!   // Will short-circuit first Some(path) return.
+//!   let search = Box::new(move |path: std::path::PathBuf| -> Option<PathBuf> {
+//!       if path.exists() {
+//!           Some(path)
+//!       } else {
+//!           None
+//!       }
+//!   });
+//!
+//!   // Will try to create a Config from the first path that your function returns
+//!   // Some(path) on. Errors if there is no match or problem creating Config.
+//!   // If no search function is provided then default is same as search above.
+//!   let config: Result<Config<JSON>> = Config::<JSON>::open_first_match(
+//!       paths,
+//!       Some(search)
+//!   );
+//! ```
 
 /// * Core library
 /// * Only import `quickfig::core::ConfigFields` if you are manually implementing,
@@ -105,7 +178,6 @@
 pub mod core {
     pub use quickfig_core::*;
 }
-
 
 /// Derive macro for `ConfigFields`
 /// # Requirements
