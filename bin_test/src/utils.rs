@@ -15,7 +15,6 @@ use toml::{
     self,
     // ser
 };
-use dirs::home_dir;
 
 pub type JSON_TEST = serde_json::Value;
 pub type TOML_TEST = toml::value::Table;
@@ -55,21 +54,21 @@ impl TestFile {
         let now = SystemTime::now();
         let duration = now.duration_since(UNIX_EPOCH)
             .expect("Time went backwards");
-        
         let timestamp = duration.as_nanos();
-        let mut home_dir = home_dir().expect("cant get home dir");
-        home_dir.push("quickfig/bin_test/tmp_configs");
+
         // home/user/quickfig/bin_test/tmp_configs/test_file_x.json
+        let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tmp_configs");
+
         match ty {
             TestFileType::JSON => {
-                home_dir.push(format!("test_file_{}.json", timestamp));
+                path.push(format!("test_file_{}.json", timestamp));
             },
             TestFileType::TOML => {
-                home_dir.push(format!("test_file_{}.toml", timestamp));
+                path.push(format!("test_file_{}.toml", timestamp));
             }
         }
-        // println!("random_file_path: {:#?}", home_dir);
-        home_dir.to_str().expect("non-unicode path").to_string()
+        path.to_str().expect("non-unicode path").to_string()
     }
 
     pub fn get_path(&self) -> String {
@@ -126,16 +125,16 @@ impl TestFile {
 
     /// * Same as new but with a provided path
     /// * Fails if file already exists
-    /// * **NOTE** will be converted to Full path using home_dir, so
+    /// * **NOTE** will be converted to full path via CARGO_MANIFEST_DIR so
     /// * `new_at_path("foo.json")` creates at
     /// * `/home/user/quickfig/bin_test/tmp_configs/foo.json`
     pub fn new_at_path(path: String, test_file_type: TestFileType) -> Result<Self, FileError> {
 
-        let mut home_dir = home_dir().expect("cant get home dir");
-        home_dir.push("quickfig/bin_test/tmp_configs");
-        home_dir.push(path);
         // home/user/quickfig/bin_test/tmp_configs/{path}
-        let path_str = home_dir.to_str().expect("non-unicode path").to_string();
+        let mut dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        dir.push("tmp_configs");
+        dir.push(path);
+        let path_str = dir.to_str().expect("non-unicode path").to_string();
 
         let _file = std::fs::OpenOptions::new()
             .write(true)
