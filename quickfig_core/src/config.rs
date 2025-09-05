@@ -2,10 +2,7 @@ use std::path::PathBuf;
 use config_types::DeserializedConfig;
 use serde::de::DeserializeOwned;
 use anyhow::{Result, anyhow};
-use crate::field::{
-    FieldMarker,
-    Field
-};
+use crate::field::Field;
 
 /// Wrapper around deserialized config file
 pub struct Config<S>(S)
@@ -144,10 +141,6 @@ impl<S: DeserializeOwned + DeserializedConfig> Config<S> {
 
 // Re-exports
 pub mod config_types {
-    use crate::{
-        FieldMarker,
-        Field
-    };
 
     pub type JSON = serde_json::Value;
     pub type TOML = toml::Value;

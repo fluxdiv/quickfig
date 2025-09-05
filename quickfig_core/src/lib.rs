@@ -6,9 +6,8 @@ pub use field::*;
 
 // quickfig/quickfig_core/lib.rs
 
-pub trait ConfigFields {
-    fn hello_macro();
-}
+// Marker trait for bounding
+pub trait ConfigFields {}
 
 // THIS defines the trait API that can be derived
 // I define HOW it's derived in the proc macro

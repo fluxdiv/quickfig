@@ -168,7 +168,7 @@ mod tests_utils {
         let mut testfile = TestFile::new(TFT::JSON).unwrap();
         testfile.add_all_type_entries(TFT::JSON).unwrap();
         let config = Config::<JSON>::open(testfile.get_path()).unwrap();
-        testfile.pretty_print().unwrap();
+        // testfile.pretty_print().unwrap();
         testfile.delete().unwrap();
         // String & char
         assert!(config.has_key("String"));
@@ -209,7 +209,7 @@ mod tests_utils {
         let mut testfile = TestFile::new(TFT::TOML).unwrap();
         testfile.add_all_type_entries(TFT::TOML).unwrap();
         let config = Config::<TOML>::open(testfile.get_path()).unwrap();
-        testfile.pretty_print().unwrap();
+        // testfile.pretty_print().unwrap();
         testfile.delete().unwrap();
         // String & char
         assert!(config.has_key("String"));

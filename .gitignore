@@ -1,6 +1,6 @@
 /target/
 todo.md
-# ignore all files inside
-tmp_configs/*
 # dont ignore dir itself
 !tmp_configs/
+# ignore all files inside
+tmp_configs/**
