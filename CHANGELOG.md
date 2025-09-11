@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [0.1.0] - 2025-09-11
 
 ### Build
+- Fix script env issues by @fluxdiv
 - Fix token auth in release flow by @fluxdiv
 - Update release script by @fluxdiv
 - Add release scripts & commit msg githook by @fluxdiv
