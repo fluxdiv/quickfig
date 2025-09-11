@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [0.1.0] - 2025-09-11
 
 ### Build
+- Fix token auth in release flow by @fluxdiv
 - Update release script by @fluxdiv
 - Add release scripts & commit msg githook by @fluxdiv
 - Specify version in quickfig_derive by @fluxdiv
@@ -13,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - CICD (#9) by @fluxdiv in [#9](https://github.com/fluxdiv/quickfig/pull/9)
 
 ### Chore
+- Release v0.1.0 by @fluxdiv
 - Release v0.1.0 by @fluxdiv
 - Add changelog by @fluxdiv
 
