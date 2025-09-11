@@ -50,7 +50,7 @@ git push origin main
 
 # - Tag it
 print_header "Creating git tag"
-git tag -a v$NEW_VERSION -m Release v$NEW_VERSION
+git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 git push origin main --tags
 
 # - Create Github release

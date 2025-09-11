@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - CICD (#9) by @fluxdiv in [#9](https://github.com/fluxdiv/quickfig/pull/9)
 
 ### Chore
+- Release v0.1.0 by @fluxdiv
 - Add changelog by @fluxdiv
 
 ### Docs
