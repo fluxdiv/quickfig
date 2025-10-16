@@ -29,10 +29,17 @@ impl<'a, S: DeserializeOwned + DeserializedConfig> Field<'a, S> {
     pub fn new(key: &str, value: &'a S) -> Field<'a, S> {
         Field { key: key.to_string(), value }
     }
+
+    pub fn get_inner(&'a self) -> &'a S {
+        self.value
+    }
 }
 
-pub trait VecField {
+pub trait VecField<S: DeserializeOwned + DeserializedConfig> {
     fn only_one_key(&self) -> Result<()>;
+    /// Get the inner deserializable value for custom deserialization
+    fn get_generic_inner(&self) -> Option<&S>;
+    fn get_wrapper(&self) -> Option<&Field<'_, S>>;
     fn get_string(&self) -> Option<String>;
     fn get_char(&self) -> Option<char>;
     fn get_u8(&self) -> Option<u8>;
@@ -50,7 +57,7 @@ pub trait VecField {
     fn get_f64(&self) -> Option<f64>;
 }
 
-impl<S: DeserializeOwned + DeserializedConfig> VecField for Vec<Field<'_, S>> {
+impl<S: DeserializeOwned + DeserializedConfig> VecField<S> for Vec<Field<'_, S>> {
 
     // Validates that all `Field`s have the same key.
     // If this returns successfully, it is guaranteed that
@@ -71,6 +78,12 @@ impl<S: DeserializeOwned + DeserializedConfig> VecField for Vec<Field<'_, S>> {
         Ok(())
     }
 
+    fn get_generic_inner(&self) -> Option<&S> {
+        Some(self.get_wrapper()?.get_inner())
+    }
+    fn get_wrapper(&self) -> Option<&Field<'_, S>> {
+        self.iter().find_map(|field| field.get_wrapper())
+    }
     fn get_string(&self) -> Option<String> {
         self.iter().find_map(|field| field.get_string())
     }
@@ -122,6 +135,9 @@ impl<S: DeserializeOwned + DeserializedConfig> VecField for Vec<Field<'_, S>> {
 pub trait GetInner {
     /// Get the key associated with this `Field`
     fn get_key(&self) -> String;
+    /// * Get the wrapper (Field) Deserializable value of this field
+    /// * Use if you need custom deserialization
+    fn get_wrapper(&self) -> Option<&Self>;
     /// * Get the parsed `String` of this `Field`
     /// * Returns `None` if field could not be parsed to String
     fn get_string(&self) -> Option<String>;
@@ -175,9 +191,9 @@ impl<S: DeserializeOwned + DeserializedConfig> GetInner for Field<'_, S> {
         self.key.clone()
     }
 
-    // constrain S further to DeserializedConfig
-    // add trait fns for .get_string() etc to it
-    // call them here
+    fn get_wrapper(&self) -> Option<&Self> {
+        Some(self)
+    }
 
     fn get_string(&self) -> Option<String> {
         self.value.get_string()

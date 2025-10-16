@@ -315,4 +315,127 @@ impl TestFile {
 
         Ok(())
     }
+
+    /// Adds following structure:
+    /// ```json
+    /// {
+    ///   "courses": [
+    ///     {
+    ///       "title": "History 101",
+    ///       "credits": 3,
+    ///       "details": {
+    ///         "room_number": 413,
+    ///         "teacher": "Lopez",
+    ///         "keywords": ["US", "History", "Introduction"]
+    ///       }
+    ///     },
+    ///     {
+    ///       "title": "Mathematics 201",
+    ///       "credits": 4
+    ///     }
+    ///   ],
+    ///   "contact": {
+    ///     "email": "john.smith@example.com",
+    ///     "phone": null
+    ///   }
+    /// }
+    ///
+    /// ```
+    /// or if toml:
+    /// ```toml
+    /// [[courses]]
+    /// title = "History 101"
+    /// credits = 3
+    /// [courses.details]
+    /// room_number = 413
+    /// teacher = "Lopez"
+    /// keywords = ["US", "History", "Introduction"]
+    ///
+    /// [[courses]]
+    /// title = "Mathematics 201"
+    /// credits = 4
+    ///
+    /// [contact]
+    /// email = "john.smith@example.com"
+    /// phone = ""
+    /// ```
+    pub fn add_all_generic_entries(
+        &mut self,
+        tft: TestFileType
+    ) -> Result<(), FileError> {
+
+        match tft {
+            TestFileType::JSON => {
+                // Build JSON structure using serde_json::json!
+                let json_value = serde_json::json!({
+                    "courses": [
+                        {
+                            "title": "History 101",
+                            "credits": 3,
+                            "details": {
+                                "room_number": 413,
+                                "teacher": "Lopez",
+                                "keywords": ["US", "History", "Introduction"]
+                            }
+                        },
+                        {
+                            "title": "Mathematics 201",
+                            "credits": 4
+                        }
+                    ],
+                    "contact": {
+                        "email": "john.smith@example.com",
+                        "phone": null
+                    }
+                });
+
+                let mut file = File::create(&self.path).map_err(FileError::IoError)?;
+                serde_json::to_writer_pretty(&mut file, &json_value).map_err(FileError::SerdeError)?;
+            }
+            TestFileType::TOML => {
+                // Build TOML structure manually using toml::value::Value
+                use toml::value::{Value as TomlValue, Table};
+
+                let mut courses = Vec::new();
+
+                let mut history = Table::new();
+                history.insert("title".into(), TomlValue::String("History 101".into()));
+                history.insert("credits".into(), TomlValue::Integer(3));
+
+                let mut history_details = Table::new();
+                history_details.insert("room_number".into(), TomlValue::Integer(413));
+                history_details.insert("teacher".into(), TomlValue::String("Lopez".into()));
+                history_details.insert(
+                    "keywords".into(),
+                    TomlValue::Array(vec![
+                        TomlValue::String("US".into()),
+                        TomlValue::String("History".into()),
+                        TomlValue::String("Introduction".into()),
+                    ]),
+                );
+                history.insert("details".into(), TomlValue::Table(history_details));
+                courses.push(TomlValue::Table(history));
+
+                let mut math = Table::new();
+                math.insert("title".into(), TomlValue::String("Mathematics 201".into()));
+                math.insert("credits".into(), TomlValue::Integer(4));
+                courses.push(TomlValue::Table(math));
+
+                let mut contact = Table::new();
+                contact.insert("email".into(), TomlValue::String("john.smith@example.com".into()));
+                contact.insert("phone".into(), TomlValue::String("".into())); // TOML has no null
+
+                let mut root = Table::new();
+                root.insert("courses".into(), TomlValue::Array(courses));
+                root.insert("contact".into(), TomlValue::Table(contact));
+
+                let toml_str = toml::ser::to_string_pretty(&TomlValue::Table(root))
+                    .map_err(|e| FileError::TomlError(e.to_string()))?;
+                let mut file = File::create(&self.path).map_err(FileError::IoError)?;
+                file.write_all(toml_str.as_bytes()).map_err(FileError::IoError)?;
+            }
+        }
+
+        Ok(())
+    }
 }
