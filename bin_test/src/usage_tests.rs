@@ -14,12 +14,175 @@ use super::utils::*;
 use super::utils::TestFileType as TFT;
 
 // MODS
+// generics          : testing generic types
+//                     with custom deserialization
 // 
 // json_main         : testing JSON configs
 // toml_main         : testing TOML configs
 //
 // misc_tests_json   : overlapping keys,
 // misc_tests_toml   : overlapping keys,
+
+
+#[cfg(test)]
+mod generics {
+    use anyhow::Result;
+    use quickfig::core::{
+        config_types::{ JSON, TOML },
+        VecField,
+        Field,
+        Config,
+        GetInner,
+    };
+    use quickfig::derive::ConfigFields;
+    use super::super::utils::*;
+    use super::super::utils::TestFileType as TFT;
+    use serde::Deserialize;
+
+    /// Top level structure
+    #[derive(Debug, Deserialize)]
+    pub struct Root {
+        pub courses: Vec<Course>,
+        pub contact: Contact,
+    }
+
+    /// Each item in the courses array
+    #[derive(Debug, Deserialize)]
+    pub struct Course {
+        pub title: String,
+        pub credits: u32,
+        pub details: Option<Details>,
+    }
+
+    /// Wrapper around coursrs array
+    #[derive(Debug, Deserialize)]
+    pub struct Courses(Vec<Course>);
+
+    /// Nested object under details
+    #[derive(Debug, Deserialize)]
+    pub struct Details {
+        pub room_number: u32,
+        pub teacher: String,
+        pub keywords: Vec<String>,
+    }
+
+    /// Contact info at the top level
+    #[derive(Debug, Deserialize)]
+    pub struct Contact {
+        pub email: String,
+        // JSON uses null, TOML uses ""
+        pub phone: Option<String>, 
+    }
+
+    #[allow(non_camel_case_types)]
+    #[derive(ConfigFields)]
+    pub enum GenericTestEnum {
+        #[keys("courses")]
+        Courses,
+        #[keys("contact")]
+        Contact,
+        #[keys("not_there")]
+        NotThere,
+    }
+
+    #[cfg(test)]
+    mod json_generics {
+        use super::*;
+        const TEST_FILE_TYPE: TestFileType = TFT::JSON;
+
+        #[test]
+        fn test_generic() {
+            let mut testfile = TestFile::new(TEST_FILE_TYPE).unwrap();
+            testfile.add_all_generic_entries(TEST_FILE_TYPE).unwrap();
+            let config = Config::<JSON>::open(testfile.get_path()).unwrap();
+            testfile.delete().unwrap();
+
+            // Courses
+            let courses = config.get(GenericTestEnum::Courses).unwrap();
+            courses.only_one_key().unwrap();
+            // Should be the array of courses
+            let courses_inner = courses.get_generic_inner().unwrap();
+            let courses_de = Courses::deserialize(courses_inner).unwrap();
+            let c_vec = courses_de.0;
+            assert!(c_vec.len() == 2);
+            let history = &c_vec[0];
+            assert_eq!(history.title, "History 101");
+            assert_eq!(history.credits, 3);
+            assert!(history.details.is_some());
+            let details = history.details.as_ref().unwrap();
+            assert_eq!(details.room_number, 413);
+            assert_eq!(details.teacher, "Lopez");
+            assert_eq!(details.keywords, vec!["US", "History", "Introduction"]);
+            let math = &c_vec[1];
+            assert_eq!(math.title, "Mathematics 201");
+            assert_eq!(math.credits, 4);
+            assert!(math.details.is_none());
+
+            // Contact
+            let contact = config.get(GenericTestEnum::Contact).unwrap();
+            contact.only_one_key().unwrap();
+            // Should deserialize into contact
+            let contact_inner = contact.get_generic_inner().unwrap();
+            let contact_de = Contact::deserialize(contact_inner).unwrap();
+            assert_eq!(contact_de.email, String::from("john.smith@example.com"));
+            assert_eq!(contact_de.phone, None);
+
+            // Not there
+            let e = config.get(GenericTestEnum::NotThere);
+            assert!(e.is_none());
+        }
+    }
+
+    #[cfg(test)]
+    mod toml_generics {
+        use super::*;
+        const TEST_FILE_TYPE: TestFileType = TFT::TOML;
+
+        #[test]
+        fn test_generic() {
+            let mut testfile = TestFile::new(TEST_FILE_TYPE).unwrap();
+            testfile.add_all_generic_entries(TEST_FILE_TYPE).unwrap();
+            let config = Config::<TOML>::open(testfile.get_path()).unwrap();
+            testfile.delete().unwrap();
+
+            // Courses
+            let courses = config.get(GenericTestEnum::Courses).unwrap();
+            courses.only_one_key().unwrap();
+            // Should be the array of courses
+            let courses_inner = courses.get_generic_inner().unwrap();
+            let courses_de = Courses::deserialize(courses_inner.clone()).unwrap();
+            let c_vec = courses_de.0;
+            assert!(c_vec.len() == 2);
+            let history = &c_vec[0];
+            assert_eq!(history.title, "History 101");
+            assert_eq!(history.credits, 3);
+            assert!(history.details.is_some());
+            let details = history.details.as_ref().unwrap();
+            assert_eq!(details.room_number, 413);
+            assert_eq!(details.teacher, "Lopez");
+            assert_eq!(details.keywords, vec!["US", "History", "Introduction"]);
+            let math = &c_vec[1];
+            assert_eq!(math.title, "Mathematics 201");
+            assert_eq!(math.credits, 4);
+            assert!(math.details.is_none());
+
+            // Contact
+            let contact = config.get(GenericTestEnum::Contact).unwrap();
+            contact.only_one_key().unwrap();
+            // Should deserialize into contact
+            let contact_inner = contact.get_generic_inner().unwrap();
+            let contact_de = Contact::deserialize(contact_inner.clone()).unwrap();
+            assert_eq!(contact_de.email, String::from("john.smith@example.com"));
+            // toml uses empty strings not null
+            assert!(contact_de.phone.is_some_and(|x| x.is_empty()));
+
+            // Not there
+            let e = config.get(GenericTestEnum::NotThere);
+            assert!(e.is_none());
+        }
+    }
+
+}
 
 #[allow(non_camel_case_types)]
 #[derive(ConfigFields)]

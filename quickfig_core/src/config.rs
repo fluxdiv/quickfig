@@ -151,6 +151,8 @@ pub mod config_types {
         fn get_at_idx(&self, idx: usize) -> Option<&Self>;
         fn as_str(&self) -> Option<&str>;
         fn has_key(&self, key: &str) -> bool;
+        // Generic to allow custom deserialization on user side
+        fn get_inner(&self) -> &Self;
         fn get_string(&self) -> Option<String>;
         fn get_char(&self) -> Option<char>;
         fn get_u8(&self) -> Option<u8>;
@@ -181,9 +183,15 @@ pub mod config_types {
         fn has_key(&self, key: &str) -> bool {
             self.get(key).is_some()
         }
+
+        fn get_inner(&self) -> &Self {
+            self
+        }
+
         fn get_string(&self) -> Option<String> {
             self.as_str().map(String::from)
         }
+
         fn get_char(&self) -> Option<char> {
             self.as_str()
                 .and_then(|s| s.chars().next())
@@ -252,6 +260,7 @@ pub mod config_types {
     }
 
     impl DeserializedConfig for TOML {
+
         fn get_at_str(&self, key: &str) -> Option<&Self> {
             self.get(key)
         }
@@ -263,6 +272,10 @@ pub mod config_types {
         }
         fn has_key(&self, key: &str) -> bool {
             self.get(key).is_some()
+        }
+
+        fn get_inner(&self) -> &Self {
+            self
         }
 
         fn get_string(&self) -> Option<String> {

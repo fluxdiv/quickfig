@@ -104,6 +104,8 @@
 //! };
 //! ```
 //!
+//! ---
+//!
 //! * List of get methods available on Vec<Field>:
 //! * **NOTE**: Any numbers outside of `i64` range will
 //!   error on TOML files as TOML spec does not support them
@@ -111,10 +113,8 @@
 //!     let config = Config::<JSON>::open("/path/to/config.json").unwrap();
 //!     let field = config.get(MyFields::SomeField).unwrap();
 //!
-//!     let f: Option<String> = field.get_string();
-//!     let f: Option<char>   = field.get_char();
-//!     let f: Option<bool>   = field.get_bool();
-//!     let f: Option<u8>     = field.get_u8();
+//!     // If you need the underlying Value for custom deserialization
+//!     let f: Option<&serde_json::Value> = field.get_generic_inner();
 //!
 //!     let f: Option<String>  = field.get_string();
 //!     let f: Option<char>    = field.get_char();
@@ -132,11 +132,87 @@
 //!     let f: Option<f32>     = field.get_f32();
 //!     let f: Option<f64>     = field.get_f64();
 //! ```
+//!
+//! ---
+//!
+//! * Sometimes a config's field isn't a basic type like String or u8.
+//!
+//!   In these cases, instead of using `field.get_u8()` etc., you can use
+//!   `field.get_generic_inner()` to access the field value directly.
+//!
+//!   If the key requested is present, Quickfig will get you a reference
+//!   to its field (as `&Value`) which you can then deserialize as needed.
+//!
+//!   Ex: You expect a config to have "colors" & "fonts" keys, and you
+//!       open a `config.json` with this content:
+//! ```json
+//! {
+//!     "colors": {
+//!         "primary": "blue",
+//!         "accents": ["purple", "cyan"],
+//!         "filter": {
+//!             "brightness": 7, 
+//!             "inverted": false
+//!         }
+//!     },
+//!     "fonts": [
+//!         { "size": 1, "name": "roboto" },
+//!         { "size": 2, "name": "verdana" }
+//!     ]
+//! }
+//! ```
+//!
+//! In your application:
+//! ```rust,ignore
+//!     // Fields you expect to be in the config
+//!     #[derive(ConfigFields)]
+//!     enum AppConfig {
+//!         #[keys("colors")]
+//!         Colors,
+//!         #[keys("fonts")]
+//!         Fonts
+//!     }
+//!     
+//!     // Types for your expected config structure
+//!     #[derive(serde::Deserialize)]
+//!     struct Colors {
+//!         primary: String,
+//!         accents: Vec<String>,
+//!         filter: Filter
+//!     }
+//!     #[derive(serde::Deserialize)]
+//!     struct Filter {
+//!         brightness: u8,
+//!         inverted: bool
+//!     }
+//!     #[derive(serde::Deserialize)]
+//!     struct Fonts(Vec<Font>);
+//!     #[derive(serde::Deserialize)]
+//!     struct Font {
+//!         size: u8,
+//!         name: String
+//!     }
+//!
+//!     // opening the config.json file 
+//!     let config = Config::<JSON>::open("/path/to/config.json").unwrap();
+//!     // Access "colors" key & verify only 1 match
+//!     let colors_field = config.get(AppConfig::Colors).unwrap();
+//!     colors_field.only_one_key().unwrap();
+//!
+//!     // Get the underlying value without trying to parse it
+//!     let colors_inner: &serde_json::Value = colors_field
+//!         .get_generic_inner()
+//!         .unwrap();
+//!
+//!     // Deserialize it yourself
+//!     let colors: Colors = Colors::deserialize(colors_inner).unwrap();
+//! ```
 //! 
-//! * Sometimes you may not know the exact path to a user's config file, but
-//!   you instead inform your user that it must in a list of possible locations.
+//! ---
+//!
+//! * Sometimes you want to allow multiple possible paths for a user's config.
 //!   
-//!   For example, your docs may state:
+//!   For example, your docs might say:
 //!   ```txt
 //!   MyApp will first check for your config at "~/.config/MyApp/config.json",
 //!   then "~/.MyApp/config.json", then "~/.local/share/MyApp/config.json"...
