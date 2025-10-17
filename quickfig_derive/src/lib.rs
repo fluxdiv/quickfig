@@ -148,15 +148,9 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
 
             fn get<'a>(&'a self, user_enum: Self::CF) -> std::option::Option<std::vec::Vec<::quickfig::core::Field<'a, ::quickfig::core::config_types::JSON>>> {
                 
-                // TODO
-                // Each arm in this match statement returns Option<Vec<Field>>
-                // and UNLESS they have #[non-exhaustive] on their enum, I dont 
-                // think I need to handle the _ arm / default None return
                 match user_enum {
                     #(#match_arms)*,
                 }
-
-                return None;
             }
         }
 
@@ -168,8 +162,6 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
                 match user_enum {
                     #(#match_arms)*,
                 }
-
-                return None;
             }
         }
     };
