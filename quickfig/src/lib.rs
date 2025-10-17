@@ -248,6 +248,8 @@
 //!   );
 //! ```
 
+pub use serde;
+
 /// * Core library
 /// * Only import `quickfig::core::ConfigFields` if you are manually implementing,
 ///   if you are deriving use `quickfig::derive::ConfigFields`
