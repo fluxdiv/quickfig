@@ -6,12 +6,6 @@ use quote::{quote, ToTokens};
 use syn::{
     meta::ParseNestedMeta, parse_macro_input, Attribute, Data, DeriveInput, Ident, Lit, Meta, Type, LitStr, punctuated::Punctuated, Token
 };
-use anyhow::Result;
-use quickfig_core::{
-    FieldMarker,
-    Field,
-    ConfigFields,
-};
 
 // https://doc.rust-lang.org/book/ch20-05-macros.html
 
@@ -138,21 +132,21 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
 
     let impl_gen = quote! {
 
-        impl quickfig::core::ConfigFields for #name {}
+        impl ::quickfig::core::ConfigFields for #name {}
 
         trait #trait_ident<S> 
             where
-                S: serde::de::DeserializeOwned + quickfig::core::config_types::DeserializedConfig,
+                S: ::quickfig::serde::de::DeserializeOwned + ::quickfig::core::config_types::DeserializedConfig,
         {
-            type CF: quickfig::core::ConfigFields;
+            type CF: ::quickfig::core::ConfigFields;
             fn get<'a>(&'a self, user_enum: Self::CF) -> 
-            std::option::Option<std::vec::Vec<quickfig::core::Field<'a, S>>>;
+            std::option::Option<std::vec::Vec<::quickfig::core::Field<'a, S>>>;
         }
 
-        impl #trait_ident<quickfig::core::config_types::JSON> for quickfig::core::Config<quickfig::core::config_types::JSON> {
+        impl #trait_ident<::quickfig::core::config_types::JSON> for ::quickfig::core::Config<::quickfig::core::config_types::JSON> {
             type CF = #name;
 
-            fn get<'a>(&'a self, user_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::Field<'a, quickfig::core::config_types::JSON>>> {
+            fn get<'a>(&'a self, user_enum: Self::CF) -> std::option::Option<std::vec::Vec<::quickfig::core::Field<'a, ::quickfig::core::config_types::JSON>>> {
                 
                 // TODO
                 // Each arm in this match statement returns Option<Vec<Field>>
@@ -166,10 +160,10 @@ fn impl_config_field_macro(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
 
-        impl #trait_ident<quickfig::core::config_types::TOML> for quickfig::core::Config<quickfig::core::config_types::TOML> {
+        impl #trait_ident<::quickfig::core::config_types::TOML> for ::quickfig::core::Config<::quickfig::core::config_types::TOML> {
             type CF = #name;
 
-            fn get<'a>(&'a self, user_enum: Self::CF) -> std::option::Option<std::vec::Vec<quickfig::core::Field<'a, quickfig::core::config_types::TOML>>> {
+            fn get<'a>(&'a self, user_enum: Self::CF) -> std::option::Option<std::vec::Vec<::quickfig::core::Field<'a, ::quickfig::core::config_types::TOML>>> {
                 
                 match user_enum {
                     #(#match_arms)*,
