@@ -12,7 +12,7 @@ repository.workspace = true
 proc-macro = true
 
 [dependencies]
-quickfig_core = { version = "0.2.0", path = "../quickfig_core" }
+quickfig_core = { version = "0.2.1", path = "../quickfig_core" }
 quote = { workspace = true }
 syn = { workspace = true }
 anyhow = { workspace = true }

@@ -10,7 +10,7 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
 name = "bin_test"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "quickfig",
@@ -64,7 +64,7 @@ dependencies = [
 
 [[package]]
 name = "quickfig"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "quickfig_core",
  "quickfig_derive",
@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "quickfig_core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "serde",
@@ -84,7 +84,7 @@ dependencies = [
 
 [[package]]
 name = "quickfig_derive"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "proc-macro2",

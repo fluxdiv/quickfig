@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2025-10-17
+
+### Chore
+- Fix changelog gen in release script by @fluxdiv
+
+### Fixed
+- Re-export serde in proc macro by @fluxdiv
+
+### Other
+- Merge pull request #12 from fluxdiv/hotfix by @fluxdiv in [#12](https://github.com/fluxdiv/quickfig/pull/12)
+
+---
+
 ## [0.2.0] - 2025-10-17
 
 ### Added
