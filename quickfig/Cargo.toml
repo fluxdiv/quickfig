@@ -7,6 +7,7 @@ authors.workspace = true
 description.workspace = true
 license.workspace = true
 repository.workspace = true
+readme = "../README.md"
 
 [dependencies]
 quickfig_core = { version = "0.1.0", path = "../quickfig_core" }
