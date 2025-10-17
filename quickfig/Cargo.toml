@@ -10,8 +10,8 @@ repository.workspace = true
 readme = "../README.md"
 
 [dependencies]
-quickfig_core = { version = "0.1.0", path = "../quickfig_core" }
-quickfig_derive = { version = "0.1.0", path = "../quickfig_derive", optional = true }
+quickfig_core = { version = "0.2.0", path = "../quickfig_core" }
+quickfig_derive = { version = "0.2.0", path = "../quickfig_derive", optional = true }
 
 [features]
 # do not include quickfig_derive by default

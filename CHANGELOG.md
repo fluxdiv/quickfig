@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - Release v0.1.0 by @fluxdiv
 - Release v0.1.0 by @fluxdiv
 - Release v0.1.0 by @fluxdiv
+- Release v0.1.0 by @fluxdiv
 - Add changelog by @fluxdiv
 
 ### Docs
