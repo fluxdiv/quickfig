@@ -39,7 +39,7 @@ set NEW_VERSION $(cargo metadata --no-deps --format-version=1 | jq -r '.packages
 
 # - use NEW_VERSION with git-cliff to add entry to changelog
 print_header "Updating changelog"
-git-cliff -c cliff.toml --tag "v$NEW_VERSION" -o CHANGELOG.md --github-token "$GITCLIFF_TOKEN" --latest
+git-cliff -c cliff.toml --tag "v$NEW_VERSION" -o CHANGELOG.md --github-token "$GITCLIFF_TOKEN"
 
 # - Create the release commit (includes cargo bumps & CHANGELOG update)
 print_header "Creating release commit"

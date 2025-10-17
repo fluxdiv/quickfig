@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2025-10-17
+
+### Added
+- Provide access to underlying generic field values by @fluxdiv
+
+### Chore
+- Release v0.2.0 by @fluxdiv
+- Add readme to quickfig cargo.toml by @fluxdiv
+
+### Other
+- Merge pull request #11 from fluxdiv/generics by @fluxdiv in [#11](https://github.com/fluxdiv/quickfig/pull/11)
+
+---
+
 ## [0.1.0] - 2025-09-11
 
 ### Build
@@ -35,5 +49,8 @@ All notable changes to this project will be documented in this file.
 - Add keys attribute, disable Vec<AllowedType> by @fluxdiv
 - Split quickfig_core into multiple files by @fluxdiv
 - Init by @fluxdiv
+
+---
+
 
 ---
