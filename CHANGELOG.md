@@ -2,9 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2025-10-17
+
+### Fixed
+- Remove unreachable code by @fluxdiv
+
+---
+
 ## [0.2.1] - 2025-10-17
 
 ### Chore
+- Release v0.2.1 by @fluxdiv
 - Fix changelog gen in release script by @fluxdiv
 
 ### Fixed

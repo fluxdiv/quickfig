@@ -16,7 +16,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 authors = ["fluxdiv <156196590+fluxdiv@users.noreply.github.com>"]
 description = "Quickfig: Replace boilerplate in apps that read from user configuration files"
